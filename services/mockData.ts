@@ -48,7 +48,7 @@ const SEED_USERS: Partial<User>[] = [
     role: UserRole.STAFF,
     reliability_score: 92,
     is_active: true,
-    avatar_url: 'https://picsum.photos/100/100?random=4'
+    avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily'
   }
 ];
 
@@ -119,22 +119,32 @@ export const markShiftAsGhost = async (shiftId: string): Promise<void> => {
 };
 
 /**
- * Accepts a shift using a Supabase RPC function for atomic safety.
+ * Accepts a shift using a Supabase Edge Function for atomic safety and notifications.
  * Returns an object with success status and a message.
  */
 export const acceptShift = async (shiftId: string, lineUserId: string): Promise<{ success: boolean; message: string }> => {
-  const { data, error } = await supabase.rpc('accept_shift', {
-    target_shift_id: shiftId,
-    actor_line_id: lineUserId
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('handle-accept-shift', {
+      body: { 
+        shift_id: shiftId, 
+        line_user_id: lineUserId 
+      }
+    });
 
-  if (error) {
-    console.error('Error accepting shift RPC:', error);
-    return { success: false, message: "System Error: Failed to communicate with server." };
+    if (error) {
+      console.error('Error invoking edge function:', error);
+      return { success: false, message: "Connection Error" };
+    }
+
+    // The Edge Function returns { success: boolean, message: string }
+    return {
+      success: data?.success || false,
+      message: data?.message || "Unexpected response from server"
+    };
+  } catch (err) {
+    console.error("Critical error in acceptShift service:", err);
+    return { success: false, message: "Connection Error" };
   }
-
-  // Expecting { success: boolean, message: string } from the RPC
-  return data as { success: boolean; message: string };
 };
 
 // --- SEED FUNCTION ---

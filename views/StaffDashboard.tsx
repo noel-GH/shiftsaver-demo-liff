@@ -29,26 +29,29 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     
     try {
       // ---------------------------------------------------------
-      // Using RPC for secure shift acceptance
+      // Using Supabase Edge Function 'handle-accept-shift'
+      // This handles the DB update and LINE notification automatically.
       // ---------------------------------------------------------
       const result = await acceptShift(shift.id, currentUser.line_user_id);
       
       if (result.success) {
+        // Success case
         setToast({ message: "✅ " + (result.message || "You got the job!"), type: 'success' });
-        await fetchShifts();
+        await fetchShifts(); // refreshShifts()
+        
         // Give user a moment to see the success message before switching tabs
         setTimeout(() => {
              setActiveTab('SCHEDULE');
              setToast(null);
         }, 1500);
       } else {
-        // Show specific error message from the database (e.g., "Too late!")
+        // Failed case (e.g., Too late, Connection Error)
         setToast({ message: "❌ " + (result.message || "Failed to accept shift."), type: 'error' });
-        await fetchShifts(); // Refresh to remove the card if it's already filled
+        await fetchShifts(); // Refresh to ensure UI matches DB state
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {
-      setToast({ message: "Error processing request. Please check connection.", type: 'error' });
+      setToast({ message: "❌ Connection Error", type: 'error' });
       setTimeout(() => setToast(null), 3000);
     }
   };
