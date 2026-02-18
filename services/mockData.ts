@@ -118,34 +118,30 @@ export const markShiftAsGhost = async (shiftId: string): Promise<void> => {
   if (error) throw error;
 };
 
-export const acceptShift = async (shiftId: string, userId: string): Promise<boolean> => {
-  // Call the Supabase RPC function (Remote Procedure Call)
-  // This ensures atomic transaction on the database side
+/**
+ * Accepts a shift using a Supabase RPC function for atomic safety.
+ * Returns an object with success status and a message.
+ */
+export const acceptShift = async (shiftId: string, lineUserId: string): Promise<{ success: boolean; message: string }> => {
   const { data, error } = await supabase.rpc('accept_shift', {
-    p_shift_id: shiftId,
-    p_user_id: userId
+    target_shift_id: shiftId,
+    actor_line_id: lineUserId
   });
 
   if (error) {
-    console.error('Error accepting shift:', error);
-    // If error occurs, assume failed
-    return false;
+    console.error('Error accepting shift RPC:', error);
+    return { success: false, message: "System Error: Failed to communicate with server." };
   }
 
-  // RPC returns boolean (true if updated, false if not found/taken)
-  return data as boolean;
+  // Expecting { success: boolean, message: string } from the RPC
+  return data as { success: boolean; message: string };
 };
 
 // --- SEED FUNCTION ---
 export const seedDatabase = async () => {
   console.log("Seeding Database...");
   
-  // 1. Clear existing (Optional, be careful in prod!)
-  // await supabase.from('attendance_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  // await supabase.from('shifts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  // await supabase.from('users').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-  // 2. Insert Users
+  // 1. Insert Users
   const { data: users, error: userError } = await supabase
     .from('users')
     .upsert(SEED_USERS, { onConflict: 'line_user_id' })
@@ -161,7 +157,7 @@ export const seedDatabase = async () => {
   // Helper to find user ID by role/name
   const getUser = (namePart: string) => users.find(u => u.display_name.includes(namePart))?.id;
 
-  // 3. Create Shifts linked to real User IDs
+  // 2. Create Shifts linked to real User IDs
   const shiftsToInsert = [
     {
       user_id: getUser('Sarah'),

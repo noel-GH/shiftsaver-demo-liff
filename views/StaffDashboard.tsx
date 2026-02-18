@@ -29,15 +29,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     
     try {
       // ---------------------------------------------------------
-      // TODO: Use currentUser.id in production. 
-      // Hardcoded ID for 'Staff John' as requested for testing.
+      // Using RPC for secure shift acceptance
       // ---------------------------------------------------------
-      const TEST_USER_ID = 'fcxx';
+      const result = await acceptShift(shift.id, currentUser.line_user_id);
       
-      const success = await acceptShift(shift.id, TEST_USER_ID);
-      
-      if (success) {
-        setToast({ message: "✅ Shift Secured! Rate updated to 1.5x", type: 'success' });
+      if (result.success) {
+        setToast({ message: "✅ " + (result.message || "You got the job!"), type: 'success' });
         await fetchShifts();
         // Give user a moment to see the success message before switching tabs
         setTimeout(() => {
@@ -45,8 +42,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
              setToast(null);
         }, 1500);
       } else {
-        setToast({ message: "❌ Too late! Someone else took it.", type: 'error' });
-        await fetchShifts(); // Refresh to remove the card
+        // Show specific error message from the database (e.g., "Too late!")
+        setToast({ message: "❌ " + (result.message || "Failed to accept shift."), type: 'error' });
+        await fetchShifts(); // Refresh to remove the card if it's already filled
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {
