@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Shift, ShiftStatus, User } from '../types';
-import { getShifts, acceptShift } from '../services/mockData';
-import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, Navigation, CheckCircle, XCircle } from 'lucide-react';
+import { getShifts } from '../services/mockData';
+import { supabase } from '../services/supabaseClient';
+import { Modal } from '../components/Modal';
+import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, Navigation, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 interface StaffDashboardProps {
   currentUser: User;
@@ -12,6 +14,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'SCHEDULE' | 'EXTRA_CASH'>('SCHEDULE');
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  
+  // Modal states for acceptance
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+  const [selectedShiftForAccept, setSelectedShiftForAccept] = useState<Shift | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchShifts = async () => {
     setLoading(true);
@@ -24,35 +31,54 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     fetchShifts();
   }, [currentUser]);
 
-  const handleAccept = async (shift: Shift) => {
-    if (!confirm(`Accept this ${shift.role_required} shift for $${shift.current_pay_rate}/hr?`)) return;
+  const handleAcceptClick = (shift: Shift) => {
+    setSelectedShiftForAccept(shift);
+    setAcceptModalOpen(true);
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!selectedShiftForAccept) return;
+    
+    setIsProcessing(true);
     
     try {
       // ---------------------------------------------------------
       // Using Supabase Edge Function 'handle-accept-shift'
-      // This handles the DB update and LINE notification automatically.
+      // This logic follows the specific implementation requested.
       // ---------------------------------------------------------
-      const result = await acceptShift(shift.id, currentUser.line_user_id);
-      
-      if (result.success) {
-        // Success case
-        setToast({ message: "✅ " + (result.message || "You got the job!"), type: 'success' });
+      const { data, error } = await supabase.functions.invoke('handle-accept-shift', {
+        body: { 
+          shift_id: selectedShiftForAccept.id, 
+          line_user_id: currentUser.line_user_id 
+        }
+      });
+
+      if (error) {
+        // Handle network error
+        setToast({ message: "❌ Connection Error", type: 'error' });
+      } else if (data.success) {
+        // Success
+        setToast({ message: "✅ " + data.message, type: 'success' });
         await fetchShifts(); // refreshShifts()
+        setAcceptModalOpen(false); // closeModal()
         
-        // Give user a moment to see the success message before switching tabs
+        // Auto-navigate to schedule after success
         setTimeout(() => {
              setActiveTab('SCHEDULE');
              setToast(null);
         }, 1500);
       } else {
-        // Failed case (e.g., Too late, Connection Error)
-        setToast({ message: "❌ " + (result.message || "Failed to accept shift."), type: 'error' });
-        await fetchShifts(); // Refresh to ensure UI matches DB state
+        // Failed (Too late, etc.)
+        setToast({ message: "❌ " + data.message, type: 'error' });
+        setAcceptModalOpen(false); // closeModal()
+        await fetchShifts();
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {
       setToast({ message: "❌ Connection Error", type: 'error' });
       setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -66,7 +92,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     .filter(s => s.user_id === currentUser.id && s.status !== ShiftStatus.CANCELLED)
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-  // Show both Bidding and Ghosted shifts as opportunities per requirements
+  // Show both Bidding and Ghosted shifts as opportunities
   const hotShifts = shifts
     .filter(s => s.status === ShiftStatus.BIDDING || s.status === ShiftStatus.GHOSTED);
 
@@ -79,7 +105,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
            date.getFullYear() === today.getFullYear();
   };
 
-  // Helper for formatting
   const formatTimeRange = (start: string, end: string) => {
     const s = new Date(start);
     const e = new Date(end);
@@ -117,7 +142,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
           <img 
             src={currentUser.avatar_url || "https://picsum.photos/100"} 
             alt="Profile" 
-            className="w-10 h-10 rounded-full border border-gray-200" 
+            className="w-10 h-10 rounded-full border border-gray-200 shadow-sm" 
           />
         </div>
       </div>
@@ -138,11 +163,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                  <p className="text-gray-500 text-sm mt-1">Check the extra cash tab to pick up work!</p>
                </div>
             ) : (
-              myShifts.map((shift, idx) => {
+              myShifts.map((shift) => {
                 const today = isToday(shift.start_time);
                 return (
                   <div key={shift.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
-                    {/* Date Strip */}
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
                     
                     <div className="flex justify-between items-start mb-3 pl-2">
@@ -162,11 +186,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       </div>
                       <div className="text-right">
                          <div className="text-lg font-bold text-gray-900">{formatTimeRange(shift.start_time, shift.end_time)}</div>
-                         <div className="text-xs text-gray-400 font-medium">Shift ID: #{shift.id.slice(0,4)}</div>
+                         <div className="text-xs text-gray-400 font-medium">#{shift.id.slice(0,4)}</div>
                       </div>
                     </div>
 
-                    {/* Check In Action (Only if Today and Scheduled) */}
                     {today && shift.status === ShiftStatus.SCHEDULED && (
                       <button 
                         onClick={() => handleCheckIn(shift)}
@@ -177,7 +200,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       </button>
                     )}
                     
-                    {/* Already Checked In */}
                     {shift.status === ShiftStatus.CHECKED_IN && (
                        <div className="mt-3 bg-green-50 border border-green-100 text-green-700 py-2 rounded-xl text-center font-medium text-sm flex items-center justify-center gap-2">
                           <Clock className="w-4 h-4" />
@@ -195,7 +217,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         {activeTab === 'EXTRA_CASH' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
              
-             {/* Header Banner */}
              <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-20">
                    <Flame className="w-24 h-24" />
@@ -205,7 +226,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                    Surge Pricing Active!
                 </h2>
                 <p className="text-orange-100 text-sm mt-1 max-w-[80%]">
-                   Pick up these high-priority shifts to earn bonus rates. First come, first served.
+                   Pick up abandoned shifts for bonus rates. Instant confirmation.
                 </p>
              </div>
 
@@ -227,7 +248,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                     <div key={shift.id} className="bg-white rounded-2xl p-1 shadow-md border border-orange-100 relative transform transition-all active:scale-[0.99]">
                       <div className="bg-gradient-to-br from-white to-orange-50 p-4 rounded-xl">
                         
-                        {/* Hot Badge */}
                         <div className="flex justify-between items-start mb-2">
                            <div className="flex items-center gap-1.5 bg-red-100 text-red-700 px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
                               <Flame className="w-3 h-3 fill-red-600" />
@@ -236,7 +256,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                            <div className="text-xs font-bold text-gray-400">{formatDate(shift.start_time)}</div>
                         </div>
 
-                        {/* Role & Pay */}
                         <div className="flex justify-between items-end mb-4">
                            <div>
                               <h3 className="text-xl font-bold text-gray-900">{shift.role_required}</h3>
@@ -263,17 +282,16 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                            </div>
                         </div>
 
-                        {/* Action Button */}
                         <button 
-                           onClick={() => handleAccept(shift)}
-                           className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-orange-200 flex items-center justify-center gap-2 active:opacity-90"
+                           onClick={() => handleAcceptClick(shift)}
+                           className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-orange-200 flex items-center justify-center gap-2 active:opacity-90 transition-all"
                         >
                            ACCEPT NOW
                            <ChevronRight className="w-5 h-5" />
                         </button>
                         
                         <div className="text-center text-[10px] text-gray-400 mt-2 font-medium">
-                           {shift.location_name} • Instant Confirmation
+                           {shift.location_name} • Urgent Replacement
                         </div>
 
                       </div>
@@ -284,6 +302,63 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
           </div>
         )}
       </main>
+
+      {/* Acceptance Modal */}
+      <Modal
+        isOpen={acceptModalOpen}
+        onClose={() => setAcceptModalOpen(false)}
+        title="Confirm Acceptance"
+        footer={
+          <>
+            <button 
+              onClick={() => setAcceptModalOpen(false)}
+              disabled={isProcessing}
+              className="px-4 py-2 rounded-lg text-gray-700 font-medium hover:bg-gray-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleConfirmAccept}
+              disabled={isProcessing}
+              className="px-6 py-2 rounded-lg bg-orange-600 text-white font-bold hover:bg-orange-700 shadow-lg shadow-orange-200 flex items-center gap-2 disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : null}
+              Confirm Shift
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 bg-orange-50 p-4 rounded-xl border border-orange-100">
+             <Info className="w-6 h-6 text-orange-600 shrink-0" />
+             <p className="text-sm text-orange-800 font-medium">
+                You are about to accept an urgent replacement shift. Please ensure you can arrive on time.
+             </p>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+             <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                   <p className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider mb-1">Role</p>
+                   <p className="font-bold text-gray-900">{selectedShiftForAccept?.role_required}</p>
+                </div>
+                <div>
+                   <p className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider mb-1">Pay Rate</p>
+                   <p className="font-bold text-red-600">${selectedShiftForAccept?.current_pay_rate.toFixed(2)}/hr</p>
+                </div>
+                <div className="col-span-2">
+                   <p className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider mb-1">Location</p>
+                   <div className="flex items-center gap-1 font-bold text-gray-900">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                      {selectedShiftForAccept?.location_name}
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* --- BOTTOM NAVIGATION --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 pb-6 flex justify-around items-center z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
