@@ -22,7 +22,7 @@ const MOCK_MANAGER: User = {
 };
 
 const MOCK_STAFF: User = {
-  id: 'dev-staff-id',
+  id: '62535dba-904e-4727-bfda-9a20310e8356',
   line_user_id: 'U22222',
   display_name: 'Dev Staff',
   role: UserRole.STAFF,
@@ -195,8 +195,8 @@ const AppContent: React.FC = () => {
 
   if (view === 'LINE_REQUIRED') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center font-inter">
-         <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 max-w-sm w-full transform transition-all hover:scale-[1.02]">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-sm w-full transform transition-all hover:scale-[1.02]">
              <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
                 <Smartphone className="w-10 h-10 text-green-600" />
              </div>
@@ -218,12 +218,12 @@ const AppContent: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-        <div className="bg-red-100 p-4 rounded-full mb-4">
+        <div className="bg-red-100 p-4 rounded-2xl mb-4 shadow-sm">
           <ShieldCheck className="w-8 h-8 text-red-600" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">Authentication Error</h2>
         <p className="text-gray-500 mt-2 max-w-xs mx-auto">{error}</p>
-        <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-gray-900 text-white rounded-lg font-medium">
+        <button onClick={() => window.location.reload()} className="mt-6 px-4 py-2 bg-gray-900 text-white rounded-2xl font-medium shadow-sm">
           Retry
         </button>
       </div>
@@ -232,13 +232,18 @@ const AppContent: React.FC = () => {
 
   if (view === 'LOADING' || isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-indigo-950 text-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="relative flex flex-col items-center">
-           <Loader2 className="w-12 h-12 animate-spin mb-6 text-indigo-400" />
-           <h2 className="text-2xl font-bold tracking-tight">Verifying Identity...</h2>
-           <p className="text-indigo-300 text-sm mt-2">Securing connection to ShiftSaver</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-gray-900">
+        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+           <div className="relative">
+              <div className="w-12 h-12 border-4 border-gray-100 border-t-gray-900 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                 <div className="w-2 h-2 bg-gray-900 rounded-full"></div>
+              </div>
+           </div>
+           <div className="text-center space-y-1">
+              <h2 className="text-sm font-bold tracking-widest uppercase">ShiftSaver</h2>
+              <p className="text-gray-400 text-xs font-medium">Verifying Identity...</p>
+           </div>
         </div>
       </div>
     );
@@ -261,7 +266,7 @@ const AppContent: React.FC = () => {
       {/* We use safe check here. If env is undefined, this block simply won't show, which is fine. */}
       {((import.meta as any).env?.DEV || !(import.meta as any).env?.PROD) && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500">
-           <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 text-white p-3 rounded-xl shadow-2xl flex flex-col gap-3">
+           <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 text-white p-3 rounded-2xl shadow-2xl flex flex-col gap-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-yellow-400 uppercase tracking-widest border-b border-gray-700 pb-2">
                  <Bug className="w-3 h-3" />
                  {usingMockData ? 'Dev: Mock Data' : 'Dev: Real Data'}
@@ -270,7 +275,7 @@ const AppContent: React.FC = () => {
               <div className="flex items-center gap-2">
                  <button 
                     onClick={() => toggleDevRole(UserRole.MANAGER)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                        user?.role === UserRole.MANAGER 
                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -282,7 +287,7 @@ const AppContent: React.FC = () => {
                  
                  <button 
                     onClick={() => toggleDevRole(UserRole.STAFF)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                        user?.role === UserRole.STAFF 
                        ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' 
                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'

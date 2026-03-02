@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter","Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+
+  /* Material Design 3 Light Theme Colors (Updated) */
+  --color-primary: #7D5714;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #FFDDB3;
+  --color-on-primary-container: #291800;
+
+  --color-secondary: #6C5D47;
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: #F6E0BB;
+  --color-on-secondary-container: #251A0A;
+
+  --color-tertiary: #4E652E;
+  --color-on-tertiary: #FFFFFF;
+  --color-tertiary-container: #D0EDA5;
+  --color-on-tertiary-container: #101F00;
+
+  --color-error: #BA1A1A;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #FFDAD6;
+  --color-on-error-container: #410002;
+
+  --color-outline: #827568;
+  --color-outline-variant: #D3C4B4;
+
+  --color-surface: #FFFBFF;
+  --color-on-surface: #1F1B16;
+  --color-surface-variant: #EFE0CF;
+  --color-on-surface-variant: #4F4539;
+
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #F8F3ED;
+  --color-surface-container: #F2EDE7;
+  --color-surface-container-high: #ECE7E1;
+  --color-surface-container-highest: #E6E2DB;
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body {
+  @apply bg-surface text-on-surface antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

@@ -86,7 +86,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
   };
 
   return (
-    <div className="min-h-screen bg-indigo-600 flex flex-col items-center justify-center p-6 text-white font-inter">
+    <div className="min-h-screen bg-indigo-600 flex flex-col items-center justify-center p-6 text-white">
       
       {/* Welcome Header */}
       <div className="text-center mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
@@ -105,7 +105,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
               <img 
                 src={lineProfile?.pictureUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"} 
                 alt="Profile" 
-                className="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover"
+                className="w-20 h-20 rounded-2xl border-4 border-white shadow-md object-cover"
               />
               <div className="absolute bottom-0 right-0 bg-green-500 p-1 rounded-full border-2 border-white">
                 <ShieldCheck className="w-3 h-3 text-white" />
@@ -114,7 +114,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
            <h2 className="font-bold text-gray-900 text-lg">
              {lineProfile?.displayName || "New User"}
            </h2>
-           <p className="text-xs text-indigo-400 font-medium bg-indigo-100 px-2 py-0.5 rounded-full mt-1">
+           <p className="text-xs text-indigo-400 font-medium bg-indigo-100 px-2 py-0.5 rounded-lg mt-1">
              LINE Verified Account
            </p>
         </div>
@@ -122,7 +122,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
         {/* Registration Form */}
         <div className="p-6">
           {error && (
-            <div className="mb-4 bg-red-50 text-red-600 text-xs font-bold p-3 rounded-lg border border-red-100 flex items-center gap-2">
+            <div className="mb-4 bg-red-50 text-red-600 text-xs font-bold p-3 rounded-2xl border border-red-100 flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
               {error}
             </div>
@@ -142,7 +142,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-gray-50 focus:bg-white"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-gray-50 focus:bg-white"
                   required
                 />
               </div>
@@ -160,7 +160,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="Ex. 081-234-5678"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-gray-50 focus:bg-white"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-gray-50 focus:bg-white"
                   required
                 />
               </div>
@@ -170,7 +170,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

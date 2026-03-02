@@ -1,36 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { Shift, ShiftStatus } from '../types';
-import { getShifts, triggerReplacement, seedDatabase, markShiftAsGhost } from '../services/mockData';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shift, ShiftStatus, User } from '../types';
+import { getShifts, triggerReplacement, seedDatabase, markShiftAsGhost, createShift, getAllStaff, cancelShift, updateShift } from '../services/mockData';
 import { notifyGhostsCron } from '../services/notificationService';
-import { ShiftCard } from '../components/ShiftCard';
+import { M3AppBar, M3Toolbar } from '../components/ui/M3AppBar';
+import { M3Button, M3IconButton } from '../components/ui/M3Button';
+import { M3ButtonGroup, M3SplitButton } from '../components/ui/M3ButtonGroup';
+import { M3LoadingIndicator, M3ProgressIndicator } from '../components/ui/M3Indicators';
+import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '../components/Modal';
-import { LayoutDashboard, AlertTriangle, Activity, CalendarClock, Database, CheckCircle, Skull, Radio, Megaphone } from 'lucide-react';
+import { Toast } from '../components/Toast';
+import { CustomSelect } from '../components/CustomSelect';
+import { LayoutDashboard, AlertTriangle, Activity, CalendarClock, Database, CheckCircle, Skull, Megaphone, Plus, Clock, MapPin, Briefcase, Wallet, Users, Info, Trash2, Layers, ChevronRight, Pencil, Check } from 'lucide-react';
+import { format, differenceInHours, isBefore, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, addDays, startOfToday } from 'date-fns';
+import { ShiftCard } from '../components/ShiftCard';
 
 export const ManagerDashboard: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [staffList, setStaffList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Replacement Modal States
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
-  const [broadcasting, setBroadcasting] = useState(false);
   
-  const [toast, setToast] = useState<{message: string, type: 'success' | 'warning'} | null>(null);
+  // Create Shift Modal States
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  
+  // Calendar States
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [startDate, setStartDate] = useState<Date | null>(new Date());
+  const [endDate, setEndDate] = useState<Date | null>(addDays(new Date(), 1));
+  
+  // สร้างรายการวันที่ล่วงหน้า 30 วันสำหรับ Carousel
+  const carouselDays = useMemo(() => {
+    const today = startOfToday();
+    return Array.from({ length: 30 }).map((_, i) => addDays(today, i));
+  }, []);
 
-  const fetchShifts = async () => {
+  // สร้างรายการเวลาทุกๆ 30 นาที สำหรับให้เลือก (08:00 - 23:30)
+  const timeSlots = useMemo(() => {
+    const slots: string[] = [];
+    for (let h = 8; h <= 23; h++) {
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      slots.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  }, []);
+
+  const [newShift, setNewShift] = useState({
+    role_required: 'Server',
+    location_name: 'Main Store',
+    start_time: '09:00',
+    end_time: '17:00',
+    base_pay_rate: 150,
+    multiplier: 1,
+    user_id: '',
+    num_slots: 1
+  });
+
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'warning' | 'error'} | null>(null);
+
+  const fetchInitialData = async () => {
     setLoading(true);
-    const data = await getShifts();
-    setShifts(data);
-    setLoading(false);
+    try {
+      const [shiftsData, staffData] = await Promise.all([
+        getShifts(),
+        getAllStaff()
+      ]);
+      setShifts(shiftsData);
+      setStaffList(staffData);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchShifts();
+    fetchInitialData();
   }, []);
+
+  // --- Calculations for Create Shift Modal ---
+  const calculatedStats = useMemo(() => {
+    try {
+      if (!startDate || !endDate) return { hours: 0, singlePay: 0, currentPayRate: 0, totalPay: 0, isValidRange: false, daysCount: 0 };
+
+      const start = new Date(`2000-01-01T${newShift.start_time}`);
+      const end = new Date(`2000-01-01T${newShift.end_time}`);
+      
+      let hours = differenceInHours(end, start);
+      if (hours < 0) hours = 0; 
+      
+      const daysCount = eachDayOfInterval({ start: startDate, end: endDate }).length;
+      const singlePay = hours * newShift.base_pay_rate;
+      const currentPayRate = Math.round(newShift.base_pay_rate * newShift.multiplier);
+      const totalPay = hours * currentPayRate * newShift.num_slots * daysCount;
+      
+      return { 
+        hours, 
+        singlePay, 
+        currentPayRate,
+        totalPay, 
+        isValidRange: end > start && endDate >= startDate,
+        daysCount
+      };
+    } catch {
+      return { hours: 0, singlePay: 0, currentPayRate: 0, totalPay: 0, isValidRange: false, daysCount: 0 };
+    }
+  }, [newShift, startDate, endDate]);
 
   const handleSeed = async () => {
     if (confirm("Populate database with demo data?")) {
         setLoading(true);
         await seedDatabase();
-        await fetchShifts();
+        await fetchInitialData();
     }
   }
 
@@ -39,8 +126,8 @@ export const ManagerDashboard: React.FC = () => {
     try {
       const result = await notifyGhostsCron();
       if (result.success && result.notified_count > 0) {
-        setToast({ message: `📢 ส่งแจ้งเตือน LINE แล้ว ${result.notified_count} งาน!`, type: 'success' });
-        await fetchShifts();
+        setToast({ message: "ส่งแจ้งเตือน LINE เรียบร้อยแล้ว!", type: 'success' });
+        await fetchInitialData();
       } else if (result.success) {
         setToast({ message: "ไม่มีงานด่วนที่ต้องแจ้งเตือน", type: 'warning' });
       } else {
@@ -51,7 +138,132 @@ export const ManagerDashboard: React.FC = () => {
       alert("Error executing broadcast.");
     } finally {
       setBroadcasting(false);
-      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const handleCreateShiftSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!calculatedStats.isValidRange || !startDate || !endDate) {
+        setToast({ message: "โปรดตรวจสอบเวลาและวันที่ให้ถูกต้อง", type: 'error' });
+        return;
+    }
+
+    const todayAtStart = new Date();
+    todayAtStart.setHours(0, 0, 0, 0);
+    if (isBefore(startDate, todayAtStart)) {
+        setToast({ message: "ไม่สามารถสร้างงานย้อนหลังได้", type: 'error' });
+        return;
+    }
+
+    setSummaryModalOpen(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    setIsCreating(true);
+    try {
+      if (editingShift) {
+        // Handle Update
+        const dateStr = format(startDate!, 'yyyy-MM-dd');
+        const startTimeISO = new Date(`${dateStr}T${newShift.start_time}`).toISOString();
+        const endTimeISO = new Date(`${dateStr}T${newShift.end_time}`).toISOString();
+
+        const result = await updateShift(editingShift.id, {
+          role_required: newShift.role_required,
+          location_name: newShift.location_name,
+          start_time: startTimeISO,
+          end_time: endTimeISO,
+          base_pay_rate: Number(newShift.base_pay_rate),
+          current_pay_rate: calculatedStats.currentPayRate,
+          user_id: newShift.user_id || undefined,
+        });
+
+        if (result.success) {
+          setToast({ message: "แก้ไขงานสำเร็จ!", type: 'success' });
+          setSummaryModalOpen(false);
+          setCreateModalOpen(false);
+          setEditingShift(null);
+          setNewShift({ ...newShift, user_id: '', num_slots: 1 });
+          await fetchInitialData();
+        } else {
+          setToast({ message: "เกิดข้อผิดพลาดในการแก้ไขงาน", type: 'error' });
+        }
+      } else {
+        // Handle Create
+        const days = eachDayOfInterval({ start: startDate!, end: endDate! });
+        let successCount = 0;
+
+        for (const day of days) {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const startTimeISO = new Date(`${dateStr}T${newShift.start_time}`).toISOString();
+          const endTimeISO = new Date(`${dateStr}T${newShift.end_time}`).toISOString();
+
+          const result = await createShift({
+            role_required: newShift.role_required,
+            location_name: newShift.location_name,
+            start_time: startTimeISO,
+            end_time: endTimeISO,
+            base_pay_rate: Number(newShift.base_pay_rate),
+            current_pay_rate: calculatedStats.currentPayRate,
+            user_id: newShift.user_id || undefined,
+          }, newShift.num_slots);
+
+          if (result.success) successCount++;
+        }
+
+        if (successCount > 0) {
+          setToast({ message: `สร้างงานสำเร็จ ${successCount * newShift.num_slots} ตำแหน่ง!`, type: 'success' });
+          setSummaryModalOpen(false);
+          setCreateModalOpen(false);
+          setNewShift({ ...newShift, user_id: '', num_slots: 1 });
+          await fetchInitialData();
+        } else {
+          setToast({ message: "เกิดข้อผิดพลาดในการสร้างงาน", type: 'error' });
+        }
+      }
+    } catch (err) {
+      setToast({ message: "รูปแบบข้อมูลไม่ถูกต้อง", type: 'error' });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleEditShift = (shift: Shift) => {
+    setEditingShift(shift);
+    setStartDate(new Date(shift.start_time));
+    setEndDate(new Date(shift.start_time));
+    setNewShift({
+      role_required: shift.role_required,
+      location_name: shift.location_name,
+      start_time: format(new Date(shift.start_time), 'HH:mm'),
+      end_time: format(new Date(shift.end_time), 'HH:mm'),
+      base_pay_rate: shift.base_pay_rate,
+      multiplier: Math.round((shift.current_pay_rate / shift.base_pay_rate) * 100) / 100,
+      user_id: shift.user_id || '',
+      num_slots: 1
+    });
+    setCreateModalOpen(true);
+  };
+
+  const handleCancelShiftAction = async (shift: Shift) => {
+    if (!confirm(`ยืนยันการลบงาน ${shift.role_required} (${format(new Date(shift.start_time), 'HH:mm')})?\nข้อมูลจะถูกลบออกจากระบบถาวร`)) return;
+    
+    setLoading(true);
+    try {
+      const result = await cancelShift(shift.id);
+      if (result.success) {
+          // Guaranteed UI update
+          setShifts(prev => prev.filter(s => String(s.id) !== String(shift.id)));
+          setToast({ message: "ลบงานออกจากระบบเรียบร้อยแล้ว", type: 'success' });
+          // Also re-fetch to ensure sync
+          await fetchInitialData();
+      } else {
+          alert("❌ ไม่สามารถลบงานได้: " + result.error);
+      }
+    } catch (err) {
+      alert("❌ เกิดข้อผิดพลาดในการลบงาน");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,9 +277,8 @@ export const ManagerDashboard: React.FC = () => {
     try {
         setLoading(true);
         await markShiftAsGhost(shift.id);
-        await fetchShifts();
-        setToast({ message: "⚠️ บันทึกสถานะ Ghosted แล้ว!", type: 'warning' });
-        setTimeout(() => setToast(null), 3000);
+        await fetchInitialData();
+        setToast({ message: "บันทึกสถานะ Ghosted แล้ว!", type: 'warning' });
     } catch (e) {
         alert("Error updating shift.");
     } finally {
@@ -79,11 +290,10 @@ export const ManagerDashboard: React.FC = () => {
     if (!selectedShift) return;
     try {
       await triggerReplacement(selectedShift.id);
-      await fetchShifts();
+      await fetchInitialData();
       setModalOpen(false);
       setSelectedShift(null);
       setToast({ message: "ส่งแจ้งเตือนงานด่วนให้พนักงานแล้ว!", type: 'success' });
-      setTimeout(() => setToast(null), 3000);
     } catch (e) {
       alert("Error triggering replacement");
     }
@@ -95,86 +305,85 @@ export const ManagerDashboard: React.FC = () => {
   const pendingNotificationCount = shifts.filter(s => s.status === ShiftStatus.GHOSTED && !s.is_notified).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-inter relative">
+    <div className="min-h-screen bg-gray-50 pb-24 relative">
       
       {toast && (
-        <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-xl z-50 flex items-center gap-2 animate-bounce whitespace-nowrap ${
-            toast.type === 'success' ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'
-        }`}>
-           {toast.type === 'success' ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Skull className="w-5 h-5 text-white" />}
-           <span className="font-bold">{toast.message}</span>
-        </div>
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
       )}
 
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-black text-indigo-900 flex items-center gap-2">
-              <LayoutDashboard className="w-6 h-6 text-indigo-600" />
-              ShiftSaver
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Manager Control</p>
-          </div>
-          <div className="flex items-center gap-3">
-             <button 
-                onClick={handleBroadcast} 
-                disabled={broadcasting}
-                className={`flex items-center gap-2 text-[10px] font-bold px-3 py-2 rounded-xl transition-all border ${
-                  pendingNotificationCount > 0 
-                  ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 animate-pulse' 
-                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                }`}
-             >
-                {broadcasting ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Megaphone className="w-4 h-4" />
-                )}
-                {pendingNotificationCount > 0 ? `แจ้งเตือนด่วน (${pendingNotificationCount})` : 'แจ้งเตือนพนักงาน'}
-             </button>
+      <M3AppBar 
+        title="ShiftSaver" 
+        subtitle="Manager Control"
+        leftAction={<LayoutDashboard className="w-6 h-6 text-primary" />}
+        rightActions={
+          <>
+            <M3Button 
+              variant="tonal"
+              onClick={handleBroadcast} 
+              loading={broadcasting}
+              className={pendingNotificationCount > 0 ? 'bg-error text-on-error animate-pulse' : ''}
+              icon={<Megaphone className="w-4 h-4" />}
+            >
+              {pendingNotificationCount > 0 ? 'แจ้งเตือนด่วน' : 'แจ้งเตือน'}
+            </M3Button>
+            {shifts.length === 0 && !loading && (
+              <M3IconButton 
+                onClick={handleSeed}
+                icon={<Database className="w-4 h-4" />}
+              />
+            )}
+          </>
+        }
+      />
 
-             {shifts.length === 0 && !loading && (
-                 <button onClick={handleSeed} className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors">
-                    <Database className="w-4 h-4" />
-                 </button>
-             )}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 pt-32 pb-6 space-y-6">
         
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-            <span className="text-gray-400 text-[9px] font-bold uppercase tracking-wider mb-1">งานทั้งหมด</span>
-            <span className="text-2xl font-black text-gray-900">{totalShifts}</span>
-          </div>
-
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-             <div className="flex items-center gap-1 mb-1">
-                <span className="text-gray-400 text-[9px] font-bold uppercase tracking-wider">กำลังทำงาน</span>
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-                </span>
-             </div>
-            <span className="text-2xl font-black text-green-600">{activeStaff}</span>
-          </div>
-
-          <div className={`p-3 rounded-2xl shadow-sm border flex flex-col items-center justify-center text-center transition-all duration-300 ${
-            ghostCount > 0 
-              ? 'bg-red-600 border-red-700 shadow-red-100 animate-pulse' 
-              : 'bg-white border-gray-100'
-          }`}>
-            <span className={`text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1 ${ghostCount > 0 ? 'text-red-100' : 'text-gray-400'}`}>
-              Ghosted
-              {ghostCount > 0 && <AlertTriangle className="w-2.5 h-2.5" />}
-            </span>
-            <span className={`text-2xl font-black ${ghostCount > 0 ? 'text-white' : 'text-gray-900'}`}>
-              {ghostCount}
-            </span>
-          </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'งานทั้งหมด', value: totalShifts, color: 'primary' },
+            { label: 'กำลังทำงาน', value: activeStaff, color: 'tertiary', live: true },
+            { label: 'Ghosted', value: ghostCount, color: 'error', alert: ghostCount > 0 }
+          ].map((stat, idx) => (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, type: "spring" }}
+              className={`p-4 rounded-[16px] border flex flex-col items-center justify-center text-center transition-all hover:shadow-md ${
+                stat.alert 
+                  ? 'bg-error text-on-error border-error' 
+                  : stat.color === 'primary'
+                    ? 'bg-primary-container text-on-primary-container border-primary-container'
+                    : 'bg-tertiary-container text-on-tertiary-container border-tertiary-container'
+              }`}
+            >
+              <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${stat.alert ? 'text-on-error/80' : 'text-on-surface-variant'}`}>
+                {stat.label}
+                {stat.live && (
+                  <span className="relative inline-flex h-1.5 w-1.5 ml-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-tertiary"></span>
+                  </span>
+                )}
+              </span>
+              <span className={`text-3xl font-black ${stat.alert ? 'text-on-error' : 'text-on-surface'}`}>{stat.value}</span>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Action Button: Create Shift */}
+        <M3Button 
+           onClick={() => setCreateModalOpen(true)}
+           className="w-full py-6 text-lg shadow-lg"
+           icon={<Plus className="w-6 h-6" />}
+        >
+           สร้างตารางงานใหม่
+        </M3Button>
 
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -182,73 +391,409 @@ export const ManagerDashboard: React.FC = () => {
             ตารางงานวันนี้
           </h2>
 
-          {loading ? (
+          {loading && shifts.length === 0 ? (
              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                <span className="text-gray-400 text-sm">กำลังอัปเดตข้อมูล...</span>
+                <M3LoadingIndicator />
+                <span className="text-gray-400 text-sm font-bold uppercase tracking-widest">กำลังอัปเดตข้อมูล...</span>
              </div>
           ) : (
             <div className="space-y-3">
-              {shifts.map(shift => {
-                 let action, label, color;
-                 
-                 if (shift.status === ShiftStatus.SCHEDULED) {
-                     action = handleSimulateGhost;
-                     label = "บันทึก No-Show";
-                     color = "bg-gray-800 hover:bg-gray-900";
-                 } else if (shift.status === ShiftStatus.GHOSTED) {
-                     action = handleFindReplacementClick;
-                     label = "ประกาศหาพนักงานด่วน";
-                     color = "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100";
-                 }
+              {shifts.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+                    <CalendarClock className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">ยังไม่มีการสร้างตารางงาน</p>
+                </div>
+              ) : (
+                shifts.map(shift => {
+                   let action, label, color;
+                   
+                   if (shift.status === ShiftStatus.SCHEDULED) {
+                       action = handleSimulateGhost;
+                       label = "บันทึก No-Show";
+                       color = "bg-gray-800 hover:bg-gray-900";
+                   } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
+                       action = handleFindReplacementClick;
+                       label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : "ประกาศหาพนักงานด่วน";
+                       color = "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100";
+                   }
 
-                 return (
-                    <ShiftCard 
-                      key={shift.id} 
-                      shift={shift} 
-                      isManager={true}
-                      onAction={action}
-                      actionLabel={label}
-                      actionColor={color}
-                    />
-                 );
-              })}
+                   return (
+                      <ShiftCard 
+                        key={shift.id} 
+                        shift={shift} 
+                        isManager={true}
+                        onAction={action}
+                        actionLabel={label}
+                        actionColor={color}
+                        onCancel={handleCancelShiftAction}
+                        onEdit={handleEditShift}
+                      />
+                   );
+                })
+              )}
             </div>
           )}
         </div>
       </main>
 
+      {/* --- MODAL: CREATE SHIFT (REVAMPED UI) --- */}
       <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="หาพนักงานมาแทนด่วน"
+        isOpen={createModalOpen}
+        onClose={() => {
+          setCreateModalOpen(false);
+          setEditingShift(null);
+        }}
+        title={editingShift ? "แก้ไขตารางงาน" : "สร้างตารางงานใหม่"}
         footer={
-          <div className="flex w-full gap-3">
-            <button 
-              onClick={() => setModalOpen(false)}
-              className="flex-1 px-4 py-3 rounded-xl text-gray-700 font-bold hover:bg-gray-100 text-sm"
-            >
-              ยกเลิก
-            </button>
-            <button 
-              onClick={confirmReplacement}
-              className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-100 text-sm"
-            >
-              ยืนยัน Surge (1.5x)
-            </button>
+          <M3Button 
+            onClick={handleCreateShiftSubmit}
+            loading={isCreating}
+            disabled={!calculatedStats.isValidRange}
+            className="w-full py-6 text-xl shadow-xl shadow-indigo-200"
+            icon={editingShift ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+          >
+            {editingShift ? "บันทึกการแก้ไข" : `สร้างงานทั้งหมด ${calculatedStats.daysCount * newShift.num_slots} กะ`}
+          </M3Button>
+        }
+      >
+        <div className="space-y-6 pb-4">
+          
+{/* --- Date Carousel Section --- */}
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-5 px-1">
+              <h3 className="font-bold text-lg text-gray-900">
+                {startDate ? format(startDate, 'MMMM yyyy') : format(new Date(), 'MMMM yyyy')}
+              </h3>
+            </div>
+
+            <div className="flex overflow-x-auto gap-3 pb-2 px-1 snap-x" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+              
+              {carouselDays.map((day) => {
+                const isSelectedStart = startDate && isSameDay(day, startDate);
+                const isSelectedEnd = endDate && isSameDay(day, endDate);
+                // เช็คว่ากดเริ่มและจบใน "วันเดียวกัน" หรือไม่
+                const isSingleDayRange = isSelectedStart && isSelectedEnd; 
+                const isInRange = startDate && endDate && isWithinInterval(day, { start: startDate, end: endDate });
+                
+                return (
+                  <button
+                    key={day.toString()}
+                    type="button"
+                    onClick={() => {
+                      if (!startDate || (startDate && endDate)) {
+                        setStartDate(day);
+                        setEndDate(null);
+                      } else if (day < startDate) {
+                        setStartDate(day);
+                        setEndDate(null);
+                      } else {
+                        setEndDate(day);
+                      }
+                    }}
+                    className="flex flex-col items-center min-w-[64px] snap-start shrink-0 relative"
+                  >
+                    {/* เส้นเชื่อมตรงกลางเมื่อเลือกเป็นช่วงวัน */}
+                    {isInRange && !isSelectedStart && !isSelectedEnd && (
+                      <div className="absolute top-7 left-[-16px] w-[96px] h-1 bg-gray-300 -z-10"></div>
+                    )}
+                    
+                    <div 
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border transition-all duration-300 z-10
+                        ${isSingleDayRange
+                          // กรณี 1: เลือกวันเดียวจบ -> ไล่สีจากน้ำเงินไปส้มแดง (บอกว่ามีทั้ง Start และ End)
+                          ? 'bg-gradient-to-br from-blue-600 to-rose-500 text-white border-transparent shadow-lg shadow-indigo-200'
+                          : isSelectedStart 
+                            // กรณี 2: วันเริ่มต้น -> สีน้ำเงิน
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' 
+                            : isSelectedEnd
+                              // กรณี 3: วันสิ้นสุด -> สีส้มแดง
+                              ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200' 
+                              : isInRange 
+                                // กรณี 4: วันที่อยู่ตรงกลาง -> พื้นหลังสีเทาเข้ม
+                                ? 'bg-gray-200 text-gray-900 border-gray-300 shadow-inner' 
+                                // กรณี 5: วันปกติ
+                                : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400' 
+                        }`}
+                    >
+                      {format(day, 'd')}
+                    </div>
+                    
+                    <span className={`text-[11px] font-bold mt-2 uppercase tracking-wider transition-colors
+                        ${isSingleDayRange ? 'text-indigo-600' : isSelectedStart ? 'text-blue-600' : isSelectedEnd ? 'text-rose-500' : isInRange ? 'text-gray-800' : 'text-gray-400'}
+                    `}>
+                      {format(day, 'EEE')}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* --- Time Selection Section --- */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                เวลาเริ่มงาน (Start Time)
+              </label>
+              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+                {timeSlots.map(time => (
+                  <button
+                    key={`start-${time}`}
+                    type="button"
+                    onClick={() => {
+                      setNewShift({...newShift, start_time: time});
+                      if (time >= newShift.end_time) {
+                        const nextHourIndex = timeSlots.indexOf(time) + 2; 
+                        if (nextHourIndex < timeSlots.length) {
+                          setNewShift(prev => ({...prev, start_time: time, end_time: timeSlots[nextHourIndex]}));
+                        }
+                      }
+                    }}
+                    className={`py-2.5 px-2 rounded-xl border text-sm font-bold text-center transition-all
+                      ${newShift.start_time === time 
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' 
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                เวลาเลิกงาน (End Time)
+              </label>
+              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+                {timeSlots
+                  .filter(t => t > newShift.start_time)
+                  .map(time => (
+                  <button
+                    key={`end-${time}`}
+                    type="button"
+                    onClick={() => setNewShift({...newShift, end_time: time})}
+                    className={`py-2.5 px-2 rounded-xl border text-sm font-bold text-center transition-all
+                      ${newShift.end_time === time 
+                        ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm' 
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-rose-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Settings */}
+          <div className="grid grid-cols-2 gap-4 px-2">
+            <CustomSelect 
+              label="ตำแหน่งงาน"
+              value={newShift.role_required}
+              onChange={val => setNewShift({...newShift, role_required: val})}
+              options={['WH Officer', 'IT Staff', 'MHE Officer', 'Delivery', 'Maintenance']}
+              className="rounded-2xl bg-gray-50 border-gray-200"
+            />
+            
+            <div className="relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">จำนวนพนักงาน</label>
+              <input 
+                type="number"
+                min="1"
+                max="50"
+                value={newShift.num_slots}
+                onChange={e => setNewShift({...newShift, num_slots: parseInt(e.target.value) || 1})}
+                className="block w-full bg-transparent outline-none text-sm font-bold text-gray-900"
+              />
+            </div>
+
+            <div className="col-span-2 relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">ค่าแรงฐาน (บาท/ชั่วโมง)</label>
+              <input 
+                type="number"
+                value={newShift.base_pay_rate}
+                onChange={e => setNewShift({...newShift, base_pay_rate: Number(e.target.value)})}
+                className="block w-full bg-transparent outline-none text-lg font-black text-gray-900"
+                required
+              />
+            </div>
+
+            <div className="space-y-3 col-span-2">
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Surge Multiplier</label>
+                <span className={`text-xs font-bold ${newShift.multiplier > 1 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {newShift.multiplier > 1 ? `Surge Active: ${Number(newShift.multiplier.toFixed(2))}x` : 'Normal Rate'}
+                </span>
+              </div>
+              <M3ButtonGroup 
+                options={['1', '1.25', '1.5', '1.75']}
+                value={String(newShift.multiplier)}
+                onChange={(val) => setNewShift({...newShift, multiplier: Number(val)})}
+              />
+              
+              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-3 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${newShift.multiplier > 1 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-600">ค่าแรงสุทธิที่จะประกาศ</span>
+                </div>
+                <div className="text-right">
+                  <span className={`text-lg font-black ${newShift.multiplier > 1 ? 'text-red-600' : 'text-indigo-600'}`}>
+                    ฿{calculatedStats.currentPayRate?.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-gray-400 ml-1">/ชม.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Box */}
+          <div className="bg-gray-900 rounded-3xl p-6 text-white mx-2 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex justify-between items-center relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">สรุปรายการ</p>
+                <p className="text-sm font-medium">{calculatedStats.daysCount} วัน x {newShift.num_slots} คน</p>
+                <p className="text-xs text-gray-500">{calculatedStats.hours} ชม./วัน</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">ยอดจ่ายรวม</p>
+                <p className="text-2xl font-black text-indigo-400">฿{calculatedStats.totalPay?.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* --- MODAL: SUMMARY BEFORE BROADCAST --- */}
+      <Modal
+        isOpen={summaryModalOpen}
+        onClose={() => setSummaryModalOpen(false)}
+        title="สรุปรายการที่จะสร้าง"
+        footer={
+          // เพิ่ม items-center เพื่อให้ปุ่มจัดเรียงตรงกลางกันพอดี
+          <div className="flex w-full gap-3 items-center">
+            
+            {/* 1. ปุ่มแก้ไข (กว้าง 35%) */}
+            <div className="w-[35%]">
+              <M3Button 
+                variant="tonal"
+                onClick={() => setSummaryModalOpen(false)}
+                // เพิ่ม rounded-full และ flex เพื่อจัดไอคอนกับข้อความ
+                className="w-full py-4 h-full rounded-full flex items-center justify-center"
+                icon={<Pencil className="w-4 h-4 mr-2" />}
+              >
+                แก้ไข
+              </M3Button>
+            </div>
+            
+            {/* 2. ปุ่มยืนยัน (กว้าง 65%) */}
+            <div className="w-[65%]">
+              <M3SplitButton 
+                label="ยืนยันการสร้าง"
+                onClick={handleConfirmCreate}
+                // (ถ้าลบ menuItems ใน M3SplitButton ไปแล้วตรงนี้ก็ไม่ต้องใส่ครับ)
+              />
+            </div>
+
           </div>
         }
       >
         <div className="space-y-4">
-          <div className="bg-red-50 p-3 rounded-xl border border-red-100 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-bold text-red-800 text-sm">พนักงานไม่มาทำงาน!</h4>
-              <p className="text-xs text-red-700 mt-1 leading-relaxed">
-                การประกาศหาพนักงานด่วนจะส่งแจ้งเตือนไปยังพนักงานทุกคนทันที โดยเพิ่มค่าแรงเป็น 1.5 เท่า
-              </p>
+          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">ตำแหน่ง</p>
+                <p className="font-bold text-indigo-900">{newShift.role_required}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">จำนวน</p>
+                <p className="font-bold text-indigo-900">{newShift.num_slots} คน / วัน</p>
+              </div>
+              <div className="col-span-2 border-t border-indigo-100 pt-3">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">ช่วงวันที่</p>
+                <p className="font-bold text-indigo-900">
+                  {startDate && format(startDate, 'd MMM')} - {endDate && format(endDate, 'd MMM yyyy')} 
+                  <span className="ml-2 text-xs font-medium text-indigo-500">({calculatedStats.daysCount} วัน)</span>
+                </p>
+              </div>
+              <div className="col-span-2 border-t border-indigo-100 pt-3">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">เวลาทำงาน</p>
+                <p className="font-bold text-indigo-900">{newShift.start_time} - {newShift.end_time} ({calculatedStats.hours} ชม.)</p>
+              </div>
             </div>
           </div>
+
+          <div className="bg-gray-900 rounded-2xl p-4 text-white">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs text-gray-400">ค่าแรงสุทธิ</span>
+              <span className="font-bold text-indigo-400">฿{calculatedStats.currentPayRate?.toLocaleString()} /ชม.</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+              <span className="text-sm font-bold">ยอดจ่ายรวมทั้งสิ้น</span>
+              <span className="text-xl font-black text-white">฿{calculatedStats.totalPay?.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 px-1">
+            <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-gray-500 leading-relaxed">
+              เมื่อกดยืนยัน ระบบจะบันทึกตารางงานลงในระบบทันที คุณสามารถกด "แจ้งเตือน" ที่หน้าหลักเพื่อส่ง Broadcast ให้พนักงานในภายหลังได้
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* --- MODAL: REPLACEMENT / BIDDING MANAGEMENT --- */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={selectedShift?.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : "หาพนักงานมาแทนด่วน"}
+        footer={
+          <div className="flex w-full gap-3">
+            <M3Button 
+              variant="text"
+              onClick={() => setModalOpen(false)}
+              className="flex-1"
+            >
+              ยกเลิก
+            </M3Button>
+            {selectedShift?.status !== ShiftStatus.BIDDING && (
+                <M3Button 
+                    onClick={confirmReplacement}
+                    className="flex-1 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100"
+                >
+                    ยืนยัน Surge (1.5x)
+                </M3Button>
+            )}
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {selectedShift?.status === ShiftStatus.GHOSTED ? (
+            <div className="bg-red-50 p-3 rounded-2xl border border-red-100 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                <h4 className="font-bold text-red-800 text-sm">พนักงานไม่มาทำงาน!</h4>
+                <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                    การประกาศหาพนักงานด่วนจะส่งแจ้งเตือนไปยังพนักงานทุกคนทันที โดยเพิ่มค่าแรงเป็น 1.5 เท่า
+                </p>
+                </div>
+            </div>
+          ) : (
+            <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 flex items-start gap-3">
+                <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                <div>
+                <h4 className="font-bold text-indigo-800 text-sm">งานว่าง (Bidding)</h4>
+                <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
+                    งานนี้ยังไม่มีพนักงานรับ คุณสามารถกดปุ่ม "แจ้งเตือน" ที่หน้าหลักเพื่อส่ง Broadcast ให้พนักงานทุกคนได้
+                </p>
+                </div>
+            </div>
+          )}
           
           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
              <div className="grid grid-cols-2 gap-3 text-sm">
@@ -257,19 +802,21 @@ export const ManagerDashboard: React.FC = () => {
                    <p className="font-bold text-gray-900 truncate">{selectedShift?.role_required}</p>
                 </div>
                 <div className="text-right">
-                   <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">เรทเดิม</p>
-                   <p className="font-medium text-gray-400 line-through">฿{selectedShift?.base_pay_rate.toLocaleString()}/ชม.</p>
+                   <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">เรทปกติ</p>
+                   <p className="font-medium text-gray-400">฿{selectedShift?.base_pay_rate?.toLocaleString()}/ชม.</p>
                 </div>
                 <div className="col-span-2 border-t border-gray-200 pt-3 mt-1 flex justify-between items-center">
-                   <span className="font-black text-gray-900">เรทพิเศษด่วน:</span>
-                   <span className="font-black text-red-600 text-xl">
-                    ฿{selectedShift ? (selectedShift.base_pay_rate * 1.5).toLocaleString() : '0'}/ชม.
+                   <span className="font-black text-gray-900">เรทปัจจุบัน:</span>
+                   <span className={`font-black text-xl ${selectedShift?.current_pay_rate! > selectedShift?.base_pay_rate! ? 'text-red-600' : 'text-indigo-600'}`}>
+                    ฿{selectedShift?.current_pay_rate?.toLocaleString()}/ชม.
                    </span>
                 </div>
              </div>
           </div>
         </div>
       </Modal>
+
+      {/* Removed M3Toolbar with Broadcast All and View Issues */}
     </div>
   );
 };

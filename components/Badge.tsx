@@ -7,13 +7,13 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ status }) => {
   const styles: Record<ShiftStatus, string> = {
-    [ShiftStatus.SCHEDULED]: 'bg-blue-100 text-blue-800 border-blue-200',
-    [ShiftStatus.CHECKED_IN]: 'bg-green-100 text-green-800 border-green-200',
-    [ShiftStatus.COMPLETED]: 'bg-gray-100 text-gray-800 border-gray-200',
-    [ShiftStatus.GHOSTED]: 'bg-red-100 text-red-800 border-red-200 animate-pulse',
-    [ShiftStatus.BIDDING]: 'bg-orange-100 text-orange-800 border-orange-200',
-    [ShiftStatus.FILLED]: 'bg-purple-100 text-purple-800 border-purple-200',
-    [ShiftStatus.CANCELLED]: 'bg-gray-100 text-gray-500 border-gray-200',
+    [ShiftStatus.SCHEDULED]: 'bg-primary-container text-on-primary-container border-primary-container',
+    [ShiftStatus.CHECKED_IN]: 'bg-tertiary-container text-on-tertiary-container border-tertiary-container',
+    [ShiftStatus.COMPLETED]: 'bg-surface-variant text-on-surface-variant border-outline-variant',
+    [ShiftStatus.GHOSTED]: 'bg-error-container text-on-error-container border-error animate-pulse',
+    [ShiftStatus.BIDDING]: 'bg-secondary-container text-on-secondary-container border-secondary-container',
+    [ShiftStatus.FILLED]: 'bg-primary-container text-on-primary-container border-primary-container',
+    [ShiftStatus.CANCELLED]: 'bg-surface-variant text-on-surface-variant border-outline-variant opacity-50',
   };
 
   const labels: Record<ShiftStatus, string> = {
@@ -27,7 +27,7 @@ export const Badge: React.FC<BadgeProps> = ({ status }) => {
   };
 
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${styles[status]}`}>
+    <span className={`px-2.5 py-0.5 rounded-2xl text-xs font-bold border ${styles[status]}`}>
       {labels[status]}
     </span>
   );

@@ -40,6 +40,7 @@ export interface Shift {
   current_pay_rate: number;
   location_name: string;
   is_notified?: boolean; // New field to track if LINE alert was sent
+  attendance_logs?: AttendanceLog[];
 }
 
 export interface AttendanceLog {

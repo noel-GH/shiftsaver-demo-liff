@@ -56,16 +56,13 @@ const SEED_USERS: Partial<User>[] = [
 
 export const getCurrentUser = async (role: UserRole, lineId?: string): Promise<User> => {
   if (lineId) {
-    // Try to find by LINE ID
     const { data } = await supabase.from('users').select('*').eq('line_user_id', lineId).single();
     if (data) return data;
   }
   
-  // Fallback: Fetch the first user with the requested role for simulation
   const { data } = await supabase.from('users').select('*').eq('role', role).limit(1).single();
   if (data) return data;
   
-  // Last resort fallback if DB is empty
   return {
     id: 'temp',
     line_user_id: 'temp',
@@ -76,10 +73,26 @@ export const getCurrentUser = async (role: UserRole, lineId?: string): Promise<U
   };
 };
 
+export const getAllStaff = async (): Promise<User[]> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', UserRole.STAFF)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching staff:', error);
+    return [];
+  }
+  return data || [];
+};
+
 export const getShifts = async (): Promise<Shift[]> => {
   const { data, error } = await supabase
     .from('shifts')
-    .select('*, user:users(*)');
+    .select('*, user:users(*)')
+    .neq('status', ShiftStatus.CANCELLED)
+    .order('start_time', { ascending: true });
 
   if (error) {
     console.error('Error fetching shifts:', error);
@@ -88,18 +101,65 @@ export const getShifts = async (): Promise<Shift[]> => {
   return data || [];
 };
 
+// Improved createShift to handle multiple slots in one call
+export const createShift = async (shiftData: Partial<Shift>, slots: number = 1): Promise<{ success: boolean; error?: string }> => {
+  const shiftsToInsert = Array.from({ length: Math.max(1, slots) }).map(() => ({
+    ...shiftData,
+    status: shiftData.user_id ? ShiftStatus.SCHEDULED : ShiftStatus.BIDDING,
+    current_pay_rate: shiftData.current_pay_rate || shiftData.base_pay_rate,
+  }));
+
+  const { error } = await supabase
+    .from('shifts')
+    .insert(shiftsToInsert);
+
+  if (error) {
+    console.error('Error creating shift(s):', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+};
+
+export const updateShift = async (shiftId: string, shiftData: Partial<Shift>): Promise<{ success: boolean; error?: string }> => {
+  const { error } = await supabase
+    .from('shifts')
+    .update(shiftData)
+    .match({ id: shiftId });
+
+  if (error) {
+    console.error('Error updating shift:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+};
+
+// Enhanced Hard Delete with match() for better reliability
+export const cancelShift = async (shiftId: string): Promise<{ success: boolean; error?: string }> => {
+  console.log(`Attempting to delete shift: ${shiftId}`);
+  
+  const { error } = await supabase
+    .from('shifts')
+    .delete()
+    .match({ id: shiftId });
+
+  if (error) {
+    console.error('Supabase Delete Error:', error);
+    return { success: false, error: error.message };
+  }
+  
+  return { success: true };
+};
+
 export const triggerReplacement = async (shiftId: string): Promise<void> => {
-  // 1. Fetch current shift to get base rate
   const { data: shift } = await supabase.from('shifts').select('*').eq('id', shiftId).single();
   if (!shift) throw new Error("Shift not found");
 
-  // 2. Update status and pay rate
   const { error } = await supabase
     .from('shifts')
     .update({
       status: ShiftStatus.BIDDING,
-      current_pay_rate: shift.base_pay_rate * 1.5, // 1.5x surge
-      user_id: null // Unassign the ghost
+      current_pay_rate: shift.base_pay_rate * 1.5,
+      user_id: null
     })
     .eq('id', shiftId);
 
@@ -111,17 +171,13 @@ export const markShiftAsGhost = async (shiftId: string): Promise<void> => {
     .from('shifts')
     .update({
       status: ShiftStatus.GHOSTED,
-      user_id: null // Unassign the user immediately
+      user_id: null
     })
     .eq('id', shiftId);
 
   if (error) throw error;
 };
 
-/**
- * Accepts a shift using a Supabase Edge Function for atomic safety and notifications.
- * Returns an object with success status and a message.
- */
 export const acceptShift = async (shiftId: string, lineUserId: string): Promise<{ success: boolean; message: string }> => {
   try {
     const { data, error } = await supabase.functions.invoke('handle-accept-shift', {
@@ -136,7 +192,6 @@ export const acceptShift = async (shiftId: string, lineUserId: string): Promise<
       return { success: false, message: "Connection Error" };
     }
 
-    // The Edge Function returns { success: boolean, message: string }
     return {
       success: data?.success || false,
       message: data?.message || "Unexpected response from server"
@@ -147,11 +202,59 @@ export const acceptShift = async (shiftId: string, lineUserId: string): Promise<
   }
 };
 
+export const getStaffShifts = async (userId: string): Promise<Shift[]> => {
+  const { data, error } = await supabase
+    .from('shifts')
+    .select(`
+      *,
+      attendance_logs ( id, check_in_time, check_out_time )
+    `)
+    .eq('user_id', userId)
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching staff shifts:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const checkIn = async (shiftId: string, userId: string, lat: number, lng: number): Promise<{ success: boolean; error?: string }> => {
+  const { error } = await supabase
+    .from('attendance_logs')
+    .insert({
+      shift_id: shiftId,
+      user_id: userId,
+      check_in_time: new Date().toISOString(),
+      gps_location: `${lat},${lng}`
+    });
+
+  if (error) {
+    console.error('Error checking in:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+};
+
+export const checkOut = async (logId: string): Promise<{ success: boolean; error?: string }> => {
+  const { error } = await supabase
+    .from('attendance_logs')
+    .update({
+      check_out_time: new Date().toISOString()
+    })
+    .eq('id', logId);
+
+  if (error) {
+    console.error('Error checking out:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+};
+
 // --- SEED FUNCTION ---
 export const seedDatabase = async () => {
   console.log("Seeding Database...");
   
-  // 1. Insert Users
   const { data: users, error: userError } = await supabase
     .from('users')
     .upsert(SEED_USERS, { onConflict: 'line_user_id' })
@@ -162,12 +265,8 @@ export const seedDatabase = async () => {
     return;
   }
 
-  console.log("Users seeded:", users);
-
-  // Helper to find user ID by role/name
   const getUser = (namePart: string) => users.find(u => u.display_name.includes(namePart))?.id;
 
-  // 2. Create Shifts linked to real User IDs
   const shiftsToInsert = [
     {
       user_id: getUser('Sarah'),
@@ -187,26 +286,6 @@ export const seedDatabase = async () => {
       role_required: 'Cook',
       base_pay_rate: 18.0,
       current_pay_rate: 18.0,
-      location_name: 'Downtown Burger'
-    },
-    {
-      user_id: getUser('Emily'),
-      start_time: setDateHours(today, 8),
-      end_time: setDateHours(today, 14),
-      status: ShiftStatus.GHOSTED,
-      role_required: 'Cashier',
-      base_pay_rate: 14.0,
-      current_pay_rate: 14.0,
-      location_name: 'Downtown Burger'
-    },
-    {
-      user_id: null, // Open for bidding
-      start_time: setDateHours(today, 17),
-      end_time: setDateHours(today, 23),
-      status: ShiftStatus.BIDDING,
-      role_required: 'Server',
-      base_pay_rate: 15.0,
-      current_pay_rate: 22.5,
       location_name: 'Downtown Burger'
     }
   ];
