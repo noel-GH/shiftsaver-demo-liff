@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Shift, ShiftStatus, User } from '../types';
 import { getShifts, triggerReplacement, seedDatabase, markShiftAsGhost, createShift, getAllStaff, cancelShift, updateShift } from '../services/mockData';
-import { notifyGhostsCron } from '../services/notificationService';
+import { notifyGhostsCron, notifySingleShift } from '../services/notificationService';
 import { M3AppBar, M3Toolbar } from '../components/ui/M3AppBar';
 import { M3Button, M3IconButton } from '../components/ui/M3Button';
 import { M3ButtonGroup, M3SplitButton } from '../components/ui/M3ButtonGroup';
@@ -130,6 +130,24 @@ export const ManagerDashboard: React.FC = () => {
         await fetchInitialData();
       } else if (result.success) {
         setToast({ message: "ไม่มีงานด่วนที่ต้องแจ้งเตือน", type: 'warning' });
+      } else {
+        alert("Broadcast failed: " + result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error executing broadcast.");
+    } finally {
+      setBroadcasting(false);
+    }
+  };
+
+  const handleSingleBroadcast = async (shift: Shift) => {
+    setBroadcasting(true);
+    try {
+      const result = await notifySingleShift(shift.id);
+      if (result.success) {
+        setToast({ message: `ส่งแจ้งเตือนสำหรับ ${shift.role_required} เรียบร้อย!`, type: 'success' });
+        await fetchInitialData();
       } else {
         alert("Broadcast failed: " + result.error);
       }
@@ -320,23 +338,24 @@ export const ManagerDashboard: React.FC = () => {
         subtitle="Manager Control"
         leftAction={<LayoutDashboard className="w-6 h-6 text-google-blue" />}
         rightActions={
-          <>
+          <div className="flex items-center gap-2">
             <M3Button 
               variant="tonal"
               onClick={handleBroadcast} 
               loading={broadcasting}
-              className={pendingNotificationCount > 0 ? 'bg-google-red text-white animate-pulse' : ''}
+              className={`px-3 py-1.5 h-9 text-xs min-w-[64px] ${pendingNotificationCount > 0 ? 'bg-google-red text-red animate-pulse' : ''}`}
               icon={<Megaphone className="w-4 h-4" />}
             >
-              {pendingNotificationCount > 0 ? 'แจ้งเตือนด่วน' : 'แจ้งเตือน'}
+              {pendingNotificationCount > 0 ? `${pendingNotificationCount}` : '0'}
             </M3Button>
             {shifts.length === 0 && !loading && (
               <M3IconButton 
                 onClick={handleSeed}
                 icon={<Database className="w-4 h-4" />}
+                className="p-2"
               />
             )}
-          </>
+          </div>
         }
       />
 
@@ -415,6 +434,7 @@ export const ManagerDashboard: React.FC = () => {
                         actionColor={color}
                         onCancel={handleCancelShiftAction}
                         onEdit={handleEditShift}
+                        onBroadcast={handleSingleBroadcast}
                       />
                    );
                 })
@@ -437,7 +457,7 @@ export const ManagerDashboard: React.FC = () => {
             onClick={handleCreateShiftSubmit}
             loading={isCreating}
             disabled={!calculatedStats.isValidRange}
-            className="w-full py-6 text-xl shadow-xl shadow-blue-200 bg-google-blue hover:bg-blue-600"
+            className="w-full py-6 text-xl shadow-xl shadow-blue-200 bg-google-navy-dark hover:bg-google-navy-dark"
             icon={editingShift ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
           >
             {editingShift ? "บันทึกการแก้ไข" : `สร้างงานทั้งหมด ${calculatedStats.daysCount * newShift.num_slots} กะ`}

@@ -2,7 +2,7 @@ import React from 'react';
 import { Shift, ShiftStatus } from '../types';
 import { M3Button, M3IconButton } from './ui/M3Button';
 import { motion } from 'motion/react';
-import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil } from 'lucide-react';
+import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil, Megaphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from './Badge';
 
@@ -14,6 +14,7 @@ interface ShiftCardProps {
   actionColor?: string;
   onCancel?: (shift: Shift) => void;
   onEdit?: (shift: Shift) => void;
+  onBroadcast?: (shift: Shift) => void;
 }
 
 export const ShiftCard: React.FC<ShiftCardProps> = ({ 
@@ -23,7 +24,8 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
   actionLabel = "Action",
   actionColor = "bg-blue-600 hover:bg-blue-700",
   onCancel,
-  onEdit
+  onEdit,
+  onBroadcast
 }) => {
   const isSurge = shift.current_pay_rate > shift.base_pay_rate;
   const canCancel = isManager && (shift.status === ShiftStatus.SCHEDULED || shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.GHOSTED);
@@ -35,17 +37,26 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
       {/* Header Row */}
       <div className="flex justify-between items-start gap-2 mb-3">
         <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-             <h3 className="font-bold text-gray-900 text-lg leading-tight break-words flex-1">
+          <div className="flex items-start gap-2 mb-0.5">
+             <h3 className="font-bold text-gray-900 text-lg leading-tight break-words flex-1 line-clamp-2">
                 {shift.role_required}
              </h3>
-              {isSurge && <span className="shrink-0 bg-google-red text-white text-[9px] px-1.5 py-0.5 rounded-lg font-bold uppercase tracking-wider">Surge</span>}
+              {isSurge && <span className="shrink-0 bg-google-red text-white text-[9px] px-1.5 py-0.5 rounded-lg font-bold uppercase tracking-wider mt-1">Surge</span>}
           </div>
-          <span className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider break-words whitespace-normal">{shift.location_name}</span>
+          <span className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider break-words whitespace-normal line-clamp-1">{shift.location_name}</span>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <Badge status={shift.status} />
           <div className="flex items-center gap-1">
+            {isManager && (shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.GHOSTED) && onBroadcast && (
+               <button 
+                 onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
+                 className="p-1.5 text-google-blue hover:text-blue-700 transition-colors"
+                 title="ส่งแจ้งเตือน LINE สำหรับกะนี้"
+               >
+                 <Megaphone className="w-4 h-4" />
+               </button>
+            )}
             {canEdit && onEdit && (
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(shift); }}

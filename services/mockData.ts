@@ -105,8 +105,9 @@ export const getShifts = async (): Promise<Shift[]> => {
 export const createShift = async (shiftData: Partial<Shift>, slots: number = 1): Promise<{ success: boolean; error?: string }> => {
   const shiftsToInsert = Array.from({ length: Math.max(1, slots) }).map(() => ({
     ...shiftData,
-    status: shiftData.user_id ? ShiftStatus.SCHEDULED : ShiftStatus.BIDDING,
+    status: shiftData.user_id ? ShiftStatus.SCHEDULED : ShiftStatus.GHOSTED,
     current_pay_rate: shiftData.current_pay_rate || shiftData.base_pay_rate,
+    is_notified: false,
   }));
 
   const { error } = await supabase
@@ -159,7 +160,8 @@ export const triggerReplacement = async (shiftId: string): Promise<void> => {
     .update({
       status: ShiftStatus.BIDDING,
       current_pay_rate: shift.base_pay_rate * 1.5,
-      user_id: null
+      user_id: null,
+      is_notified: false
     })
     .eq('id', shiftId);
 
@@ -167,11 +169,15 @@ export const triggerReplacement = async (shiftId: string): Promise<void> => {
 };
 
 export const markShiftAsGhost = async (shiftId: string): Promise<void> => {
+  const { data: shift } = await supabase.from('shifts').select('base_pay_rate').eq('id', shiftId).single();
+  
   const { error } = await supabase
     .from('shifts')
     .update({
       status: ShiftStatus.GHOSTED,
-      user_id: null
+      user_id: null,
+      is_notified: false,
+      current_pay_rate: shift ? shift.base_pay_rate * 1.5 : undefined
     })
     .eq('id', shiftId);
 

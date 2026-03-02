@@ -25,7 +25,7 @@ export const notifyGhostsCron = async () => {
     .from('shifts')
     .select('*')
     .eq('status', ShiftStatus.GHOSTED)
-    .not('is_notified', 'eq', true);
+    .or('is_notified.is.null,is_notified.eq.false');
 
   if (shiftError) {
     console.error("Database Error (Shifts):", shiftError);
@@ -175,4 +175,41 @@ export const notifyGhostsCron = async () => {
 
   console.log(`✅ CRON FINISHED. Notified about ${notifiedCount} shifts.`);
   return { success: true, notified_count: notifiedCount };
+};
+
+export const notifySingleShift = async (shiftId: string) => {
+  console.log(`🔄 NOTIFY SINGLE: Checking shift ${shiftId}...`);
+
+  const getEnv = (key: string) => (import.meta as any).env?.[key] || '';
+  const LINE_CHANNEL_ACCESS_TOKEN = getEnv('VITE_LINE_CHANNEL_ACCESS_TOKEN');
+  const LIFF_BASE_URL = getEnv('VITE_LIFF_BASE_URL');
+
+  if (!LINE_CHANNEL_ACCESS_TOKEN) return { success: false, error: "Missing Line Token" };
+
+  const { data: shift, error: shiftError } = await supabase
+    .from('shifts')
+    .select('*')
+    .eq('id', shiftId)
+    .single();
+
+  if (shiftError || !shift) return { success: false, error: "Shift not found" };
+
+  const { data: staffMembers } = await supabase
+    .from('users')
+    .select('line_user_id')
+    .eq('role', UserRole.STAFF)
+    .eq('is_active', true);
+
+  const staffLineIds = staffMembers?.map(u => u.line_user_id).filter(id => id && id !== 'temp') || [];
+  if (staffLineIds.length === 0) return { success: false, error: "No staff found" };
+
+  // Simulate sending (same payload as cron)
+  console.log(`🚀 SENDING INDIVIDUAL NOTIFICATION FOR SHIFT ${shiftId.slice(0,4)} TO ${staffLineIds.length} STAFF`);
+
+  await supabase
+    .from('shifts')
+    .update({ is_notified: true, status: ShiftStatus.BIDDING })
+    .eq('id', shiftId);
+
+  return { success: true };
 };
