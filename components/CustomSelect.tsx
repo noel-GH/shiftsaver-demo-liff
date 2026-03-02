@@ -40,16 +40,16 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left bg-surface-container-low border border-outline rounded-2xl px-4 py-2.5 transition-all outline-none focus:ring-2 focus:ring-primary focus:border-primary ${isOpen ? 'ring-2 ring-primary border-primary' : ''}`}
+        className={`w-full text-left bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 transition-all outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${isOpen ? 'ring-2 ring-indigo-500 border-indigo-500' : ''}`}
       >
-        <span className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest leading-tight mb-0.5">
+        <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">
           {label}
         </span>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-bold text-on-surface leading-tight">
+          <span className="text-sm font-bold text-gray-900 leading-tight">
             {selectedOption?.label}
           </span>
-          <ChevronDown className={`w-4 h-4 text-on-surface-variant transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -60,7 +60,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-[60] left-0 right-0 mt-2 bg-surface-container-high border border-outline-variant rounded-2xl shadow-xl overflow-hidden"
+            className="absolute z-[60] left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden"
           >
             <div className="max-h-60 overflow-y-auto p-1.5">
               {normalizedOptions.map((option) => (
@@ -73,8 +73,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
                   }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between transition-colors ${
                     value === option.value 
-                      ? 'bg-secondary-container text-on-secondary-container' 
-                      : 'text-on-surface hover:bg-surface-variant'
+                      ? 'bg-indigo-50 text-indigo-600' 
+                      : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {option.label}

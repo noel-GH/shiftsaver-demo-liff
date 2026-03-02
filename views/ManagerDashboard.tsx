@@ -305,7 +305,7 @@ export const ManagerDashboard: React.FC = () => {
   const pendingNotificationCount = shifts.filter(s => s.status === ShiftStatus.GHOSTED && !s.is_notified).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 relative">
+    <div className="min-h-screen bg-white pb-24 relative">
       
       {toast && (
         <Toast 
@@ -318,14 +318,14 @@ export const ManagerDashboard: React.FC = () => {
       <M3AppBar 
         title="ShiftSaver" 
         subtitle="Manager Control"
-        leftAction={<LayoutDashboard className="w-6 h-6 text-primary" />}
+        leftAction={<LayoutDashboard className="w-6 h-6 text-google-blue" />}
         rightActions={
           <>
             <M3Button 
               variant="tonal"
               onClick={handleBroadcast} 
               loading={broadcasting}
-              className={pendingNotificationCount > 0 ? 'bg-error text-on-error animate-pulse' : ''}
+              className={pendingNotificationCount > 0 ? 'bg-google-red text-white animate-pulse' : ''}
               icon={<Megaphone className="w-4 h-4" />}
             >
               {pendingNotificationCount > 0 ? 'แจ้งเตือนด่วน' : 'แจ้งเตือน'}
@@ -340,38 +340,26 @@ export const ManagerDashboard: React.FC = () => {
         }
       />
 
-      <main className="max-w-4xl mx-auto px-4 pt-32 pb-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 pt-48 pb-6 space-y-8">
         
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'งานทั้งหมด', value: totalShifts, color: 'primary' },
-            { label: 'กำลังทำงาน', value: activeStaff, color: 'tertiary', live: true },
-            { label: 'Ghosted', value: ghostCount, color: 'error', alert: ghostCount > 0 }
+            { label: 'งานทั้งหมด', value: totalShifts, color: 'bg-google-blue' },
+            { label: 'กำลังทำงาน', value: activeStaff, color: 'bg-google-green-dark' },
+            { label: 'Ghosted', value: ghostCount, color: 'bg-google-red-dark' }
           ].map((stat, idx) => (
             <motion.div 
               key={idx}
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: idx * 0.1, type: "spring" }}
-              className={`p-4 rounded-[16px] border flex flex-col items-center justify-center text-center transition-all hover:shadow-md ${
-                stat.alert 
-                  ? 'bg-error text-on-error border-error' 
-                  : stat.color === 'primary'
-                    ? 'bg-primary-container text-on-primary-container border-primary-container'
-                    : 'bg-tertiary-container text-on-tertiary-container border-tertiary-container'
-              }`}
+              className={`${stat.color} p-4 rounded-[24px] shadow-lg flex flex-col items-center justify-center text-center text-white border border-white/10 transition-all hover:shadow-xl`}
             >
-              <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${stat.alert ? 'text-on-error/80' : 'text-on-surface-variant'}`}>
+              <span className="text-[10px] font-bold uppercase tracking-widest mb-1 text-white/90">
                 {stat.label}
-                {stat.live && (
-                  <span className="relative inline-flex h-1.5 w-1.5 ml-1">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-tertiary"></span>
-                  </span>
-                )}
               </span>
-              <span className={`text-3xl font-black ${stat.alert ? 'text-on-error' : 'text-on-surface'}`}>{stat.value}</span>
+              <span className="text-3xl font-black text-white">{stat.value}</span>
             </motion.div>
           ))}
         </div>
@@ -379,7 +367,7 @@ export const ManagerDashboard: React.FC = () => {
         {/* Action Button: Create Shift */}
         <M3Button 
            onClick={() => setCreateModalOpen(true)}
-           className="w-full py-6 text-lg shadow-lg"
+           className="w-full py-6 text-lg shadow-xl shadow-blue-100 bg-google-blue hover:bg-blue-600"
            icon={<Plus className="w-6 h-6" />}
         >
            สร้างตารางงานใหม่
@@ -449,7 +437,7 @@ export const ManagerDashboard: React.FC = () => {
             onClick={handleCreateShiftSubmit}
             loading={isCreating}
             disabled={!calculatedStats.isValidRange}
-            className="w-full py-6 text-xl shadow-xl shadow-indigo-200"
+            className="w-full py-6 text-xl shadow-xl shadow-blue-200 bg-google-blue hover:bg-blue-600"
             icon={editingShift ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
           >
             {editingShift ? "บันทึกการแก้ไข" : `สร้างงานทั้งหมด ${calculatedStats.daysCount * newShift.num_slots} กะ`}
@@ -502,25 +490,25 @@ export const ManagerDashboard: React.FC = () => {
                       className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border transition-all duration-300 z-10
                         ${isSingleDayRange
                           // กรณี 1: เลือกวันเดียวจบ -> ไล่สีจากน้ำเงินไปส้มแดง (บอกว่ามีทั้ง Start และ End)
-                          ? 'bg-gradient-to-br from-blue-600 to-rose-500 text-white border-transparent shadow-lg shadow-indigo-200'
+                          ? 'bg-gradient-to-br from-google-blue to-google-red text-white border-transparent shadow-lg shadow-blue-200'
                           : isSelectedStart 
                             // กรณี 2: วันเริ่มต้น -> สีน้ำเงิน
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200' 
+                            ? 'bg-google-blue text-white border-google-blue shadow-md shadow-blue-200' 
                             : isSelectedEnd
                               // กรณี 3: วันสิ้นสุด -> สีส้มแดง
-                              ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200' 
+                              ? 'bg-google-red text-white border-google-red shadow-md shadow-red-200' 
                               : isInRange 
                                 // กรณี 4: วันที่อยู่ตรงกลาง -> พื้นหลังสีเทาเข้ม
                                 ? 'bg-gray-200 text-gray-900 border-gray-300 shadow-inner' 
                                 // กรณี 5: วันปกติ
-                                : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400' 
+                                : 'bg-white text-gray-800 border-gray-200 hover:border-google-blue' 
                         }`}
                     >
                       {format(day, 'd')}
                     </div>
                     
                     <span className={`text-[11px] font-bold mt-2 uppercase tracking-wider transition-colors
-                        ${isSingleDayRange ? 'text-indigo-600' : isSelectedStart ? 'text-blue-600' : isSelectedEnd ? 'text-rose-500' : isInRange ? 'text-gray-800' : 'text-gray-400'}
+                        ${isSingleDayRange ? 'text-google-blue' : isSelectedStart ? 'text-google-blue' : isSelectedEnd ? 'text-google-red' : isInRange ? 'text-gray-800' : 'text-gray-400'}
                     `}>
                       {format(day, 'EEE')}
                     </span>
@@ -552,8 +540,8 @@ export const ManagerDashboard: React.FC = () => {
                     }}
                     className={`py-2.5 px-2 rounded-xl border text-sm font-bold text-center transition-all
                       ${newShift.start_time === time 
-                        ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' 
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-gray-50'
+                        ? 'border-google-blue bg-blue-50 text-google-blue shadow-sm' 
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-google-blue hover:bg-gray-50'
                       }`}
                   >
                     {time}
@@ -576,8 +564,8 @@ export const ManagerDashboard: React.FC = () => {
                     onClick={() => setNewShift({...newShift, end_time: time})}
                     className={`py-2.5 px-2 rounded-xl border text-sm font-bold text-center transition-all
                       ${newShift.end_time === time 
-                        ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm' 
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-rose-300 hover:bg-gray-50'
+                        ? 'border-google-red bg-red-50 text-google-red shadow-sm' 
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-google-red hover:bg-gray-50'
                       }`}
                   >
                     {time}
@@ -597,7 +585,7 @@ export const ManagerDashboard: React.FC = () => {
               className="rounded-2xl bg-gray-50 border-gray-200"
             />
             
-            <div className="relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+            <div className="relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-google-blue focus-within:border-google-blue">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">จำนวนพนักงาน</label>
               <input 
                 type="number"
@@ -609,7 +597,7 @@ export const ManagerDashboard: React.FC = () => {
               />
             </div>
 
-            <div className="col-span-2 relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+            <div className="col-span-2 relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-google-blue focus-within:border-google-blue">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">ค่าแรงฐาน (บาท/ชั่วโมง)</label>
               <input 
                 type="number"
@@ -623,7 +611,7 @@ export const ManagerDashboard: React.FC = () => {
             <div className="space-y-3 col-span-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Surge Multiplier</label>
-                <span className={`text-xs font-bold ${newShift.multiplier > 1 ? 'text-red-600' : 'text-gray-400'}`}>
+                <span className={`text-xs font-bold ${newShift.multiplier > 1 ? 'text-google-red' : 'text-gray-400'}`}>
                   {newShift.multiplier > 1 ? `Surge Active: ${Number(newShift.multiplier.toFixed(2))}x` : 'Normal Rate'}
                 </span>
               </div>
@@ -641,7 +629,7 @@ export const ManagerDashboard: React.FC = () => {
                   <span className="text-xs font-bold text-gray-600">ค่าแรงสุทธิที่จะประกาศ</span>
                 </div>
                 <div className="text-right">
-                  <span className={`text-lg font-black ${newShift.multiplier > 1 ? 'text-red-600' : 'text-indigo-600'}`}>
+                  <span className={`text-lg font-black ${newShift.multiplier > 1 ? 'text-google-red-dark' : 'text-google-blue'}`}>
                     ฿{calculatedStats.currentPayRate?.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-gray-400 ml-1">/ชม.</span>
@@ -652,7 +640,7 @@ export const ManagerDashboard: React.FC = () => {
 
           {/* Summary Box */}
           <div className="bg-gray-900 rounded-3xl p-6 text-white mx-2 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-google-blue/10 rounded-full -mr-16 -mt-16"></div>
             <div className="flex justify-between items-center relative z-10">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">สรุปรายการ</p>
@@ -660,8 +648,8 @@ export const ManagerDashboard: React.FC = () => {
                 <p className="text-xs text-gray-500">{calculatedStats.hours} ชม./วัน</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">ยอดจ่ายรวม</p>
-                <p className="text-2xl font-black text-indigo-400">฿{calculatedStats.totalPay?.toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest">ยอดจ่ายรวม</p>
+                <p className="text-2xl font-black text-google-blue">฿{calculatedStats.totalPay?.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -703,26 +691,26 @@ export const ManagerDashboard: React.FC = () => {
         }
       >
         <div className="space-y-4">
-          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">ตำแหน่ง</p>
-                <p className="font-bold text-indigo-900">{newShift.role_required}</p>
+                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">ตำแหน่ง</p>
+                <p className="font-bold text-google-blue">{newShift.role_required}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">จำนวน</p>
-                <p className="font-bold text-indigo-900">{newShift.num_slots} คน / วัน</p>
+                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">จำนวน</p>
+                <p className="font-bold text-google-blue">{newShift.num_slots} คน / วัน</p>
               </div>
-              <div className="col-span-2 border-t border-indigo-100 pt-3">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">ช่วงวันที่</p>
-                <p className="font-bold text-indigo-900">
+              <div className="col-span-2 border-t border-blue-100 pt-3">
+                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">ช่วงวันที่</p>
+                <p className="font-bold text-google-blue">
                   {startDate && format(startDate, 'd MMM')} - {endDate && format(endDate, 'd MMM yyyy')} 
-                  <span className="ml-2 text-xs font-medium text-indigo-500">({calculatedStats.daysCount} วัน)</span>
+                  <span className="ml-2 text-xs font-medium text-google-blue">({calculatedStats.daysCount} วัน)</span>
                 </p>
               </div>
-              <div className="col-span-2 border-t border-indigo-100 pt-3">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">เวลาทำงาน</p>
-                <p className="font-bold text-indigo-900">{newShift.start_time} - {newShift.end_time} ({calculatedStats.hours} ชม.)</p>
+              <div className="col-span-2 border-t border-blue-100 pt-3">
+                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">เวลาทำงาน</p>
+                <p className="font-bold text-google-blue">{newShift.start_time} - {newShift.end_time} ({calculatedStats.hours} ชม.)</p>
               </div>
             </div>
           </div>
@@ -730,7 +718,7 @@ export const ManagerDashboard: React.FC = () => {
           <div className="bg-gray-900 rounded-2xl p-4 text-white">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs text-gray-400">ค่าแรงสุทธิ</span>
-              <span className="font-bold text-indigo-400">฿{calculatedStats.currentPayRate?.toLocaleString()} /ชม.</span>
+              <span className="font-bold text-google-blue">฿{calculatedStats.currentPayRate?.toLocaleString()} /ชม.</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-gray-800">
               <span className="text-sm font-bold">ยอดจ่ายรวมทั้งสิ้น</span>
@@ -764,7 +752,7 @@ export const ManagerDashboard: React.FC = () => {
             {selectedShift?.status !== ShiftStatus.BIDDING && (
                 <M3Button 
                     onClick={confirmReplacement}
-                    className="flex-1 bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100"
+                    className="flex-1 bg-google-red hover:bg-red-700 shadow-lg shadow-red-100"
                 >
                     ยืนยัน Surge (1.5x)
                 </M3Button>
@@ -784,11 +772,11 @@ export const ManagerDashboard: React.FC = () => {
                 </div>
             </div>
           ) : (
-            <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 flex items-start gap-3">
-                <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex items-start gap-3">
+                <Info className="w-5 h-5 text-google-blue shrink-0 mt-0.5" />
                 <div>
-                <h4 className="font-bold text-indigo-800 text-sm">งานว่าง (Bidding)</h4>
-                <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
+                <h4 className="font-bold text-google-blue text-sm">งานว่าง (Bidding)</h4>
+                <p className="text-xs text-blue-700 mt-1 leading-relaxed">
                     งานนี้ยังไม่มีพนักงานรับ คุณสามารถกดปุ่ม "แจ้งเตือน" ที่หน้าหลักเพื่อส่ง Broadcast ให้พนักงานทุกคนได้
                 </p>
                 </div>
@@ -816,7 +804,7 @@ export const ManagerDashboard: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Removed M3Toolbar with Broadcast All and View Issues */}
+      
     </div>
   );
 };

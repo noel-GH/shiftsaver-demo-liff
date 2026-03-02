@@ -10,7 +10,7 @@ interface M3ButtonGroupProps {
 
 export const M3ButtonGroup: React.FC<M3ButtonGroupProps> = ({ options, value, onChange, className = '' }) => {
   return (
-    <div className={`flex bg-surface-variant p-1.5 rounded-[24px] relative ${className}`}>
+    <div className={`flex bg-gray-100 p-1.5 rounded-[24px] relative ${className}`}>
       {options.map((option) => {
         const isActive = value === option;
         return (
@@ -22,12 +22,12 @@ export const M3ButtonGroup: React.FC<M3ButtonGroupProps> = ({ options, value, on
             {isActive && (
               <motion.div
                 layoutId="active-pill"
-                className="absolute inset-0 bg-surface rounded-[20px] shadow-sm"
+                className="absolute inset-0 bg-white rounded-[20px] shadow-sm"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}
             <span className={`relative z-20 text-xs font-bold transition-colors duration-200 ${
-              isActive ? 'text-primary' : 'text-on-surface-variant'
+              isActive ? 'text-indigo-900' : 'text-gray-500'
             }`}>
               {option}
             </span>
@@ -47,13 +47,15 @@ interface M3SplitButtonProps {
 
 export const M3SplitButton: React.FC<M3SplitButtonProps> = ({ label, onClick }) => {
   return (
-    <div className="relative inline-flex">
+    /* เอา w-full ออกจาก div ตรงนี้ เพื่อให้มันไม่ขยายเต็มพื้นที่ */
+    <div className="relative flex w-full">
       <motion.button
         type="button"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm shadow-md hover:bg-primary/90 transition-colors"
+        /* เอา w-full ออก และเปลี่ยนเป็น rounded-full เพื่อให้ขอบมนสวยงาม */
+        className="w-full flex items-center justify-center bg-indigo-600 text-white px-6 py-4 rounded-full font-bold text-sm shadow-md hover:bg-indigo-700 transition-colors"
       >
         {label}
       </motion.button>

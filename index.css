@@ -2,41 +2,21 @@
 
 @theme {
   --font-sans: "Inter","Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
-
-  /* Material Design 3 Light Theme Colors (Updated) */
-  --color-primary: #7D5714;
-  --color-on-primary: #FFFFFF;
-  --color-primary-container: #FFDDB3;
-  --color-on-primary-container: #291800;
-
-  --color-secondary: #6C5D47;
-  --color-on-secondary: #FFFFFF;
-  --color-secondary-container: #F6E0BB;
-  --color-on-secondary-container: #251A0A;
-
-  --color-tertiary: #4E652E;
-  --color-on-tertiary: #FFFFFF;
-  --color-tertiary-container: #D0EDA5;
-  --color-on-tertiary-container: #101F00;
-
-  --color-error: #BA1A1A;
-  --color-on-error: #FFFFFF;
-  --color-error-container: #FFDAD6;
-  --color-on-error-container: #410002;
-
-  --color-outline: #827568;
-  --color-outline-variant: #D3C4B4;
-
-  --color-surface: #FFFBFF;
-  --color-on-surface: #1F1B16;
-  --color-surface-variant: #EFE0CF;
-  --color-on-surface-variant: #4F4539;
-
-  --color-surface-container-lowest: #FFFFFF;
-  --color-surface-container-low: #F8F3ED;
-  --color-surface-container: #F2EDE7;
-  --color-surface-container-high: #ECE7E1;
-  --color-surface-container-highest: #E6E2DB;
+  
+  /* Google Color Palette */
+  --color-google-blue: #4285F4;
+  --color-google-green: #34A853;
+  --color-google-green-dark: #188038;
+  --color-google-yellow: #FBBC05;
+  --color-google-yellow-dark: #AF5C00;
+  --color-google-red: #EA4335;
+  --color-google-red-dark: #D93025;
+  
+  /* Semantic Mappings */
+  --color-primary: var(--color-google-blue);
+  --color-success: var(--color-google-green);
+  --color-warning: var(--color-google-yellow);
+  --color-error: var(--color-google-red);
 }
 
 @layer utilities {
@@ -55,7 +35,7 @@
 }
 
 body {
-  @apply bg-surface text-on-surface antialiased;
+  @apply bg-white text-gray-900 antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 

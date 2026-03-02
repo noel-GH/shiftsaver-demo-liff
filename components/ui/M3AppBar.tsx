@@ -18,28 +18,28 @@ export const M3AppBar: React.FC<M3AppBarProps> = ({ title, subtitle, leftAction,
     });
   }, [scrollY]);
 
-  const headerHeight = useTransform(scrollY, [0, 100], [120, 72]);
-  const titleScale = useTransform(scrollY, [0, 100], [1.2, 1]);
-  const titleY = useTransform(scrollY, [0, 100], [20, 0]);
+  const headerHeight = useTransform(scrollY, [0, 100], [120, 80]);
+  const titleScale = useTransform(scrollY, [0, 100], [1, 0.9]);
+  const titleY = useTransform(scrollY, [0, 100], [0, -5]);
 
   return (
     <motion.header
       style={{ height: headerHeight }}
-      className={`fixed top-0 left-0 right-0 z-40 bg-surface/80 backdrop-blur-xl border-b transition-all duration-500 ${
-        isScrolled ? 'border-outline-variant shadow-sm rounded-b-[32px]' : 'border-transparent'
+      className={`fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-xl border-b transition-all duration-500 ${
+        isScrolled ? 'border-gray-200 shadow-sm rounded-b-[32px]' : 'border-transparent'
       }`}
     >
-      <div className="max-w-4xl mx-auto h-full px-6 flex items-center justify-between relative">
+      <div className="max-w-4xl mx-auto h-full px-8 flex items-center justify-between relative">
         <div className="flex items-center gap-4">
           {leftAction && (
             <motion.div whileTap={{ scale: 0.9 }}>
               {leftAction}
             </motion.div>
           )}
-          <motion.div style={{ scale: titleScale, y: titleY }} className="origin-left">
-            <h1 className="text-xl font-black text-primary leading-none">{title}</h1>
+          <motion.div style={{ scale: titleScale, y: titleY }}>
+            <h1 className="text-2xl font-black text-google-blue leading-tight">{title}</h1>
             {subtitle && (
-              <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mt-1">
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
                 {subtitle}
               </p>
             )}

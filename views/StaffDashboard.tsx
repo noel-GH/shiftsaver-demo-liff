@@ -9,8 +9,7 @@ import { M3LoadingIndicator } from '../components/ui/M3Indicators';
 import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
-import { ShiftCard } from '../components/ShiftCard';
-import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, Navigation, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 interface StaffDashboardProps {
   currentUser: User;
@@ -162,7 +161,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-24 relative">
+    <div className="min-h-screen bg-white pb-24 relative">
       
       {toast && (
         <Toast 
@@ -179,8 +178,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
           <img 
             src={currentUser.avatar_url || "https://picsum.photos/100"} 
             alt="Profile" 
-            className="w-10 h-10 rounded-[12px] border border-outline-variant shadow-sm" 
-            referrerPolicy="no-referrer"
+            className="w-10 h-10 rounded-2xl border border-gray-200 shadow-sm" 
           />
         }
       />
@@ -209,25 +207,77 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 const isCheckedIn = attendanceLog && attendanceLog.check_in_time && !attendanceLog.check_out_time;
                 const isCompleted = attendanceLog && attendanceLog.check_out_time;
 
-                let actionLabel = "";
-                let onAction = undefined;
-
-                if (!attendanceLog && today) {
-                  actionLabel = "CHECK IN";
-                  onAction = () => handleCheckIn(shift);
-                } else if (isCheckedIn) {
-                  actionLabel = "CHECK OUT";
-                  onAction = () => handleCheckOut(attendanceLog.id);
-                }
-
                 return (
-                  <ShiftCard 
-                    key={shift.id}
-                    shift={shift}
-                    isManager={false}
-                    onAction={onAction}
-                    actionLabel={actionLabel}
-                  />
+                  <div key={shift.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isCompleted ? 'bg-google-green' : isCheckedIn ? 'bg-google-yellow' : 'bg-google-blue'}`}></div>
+                    
+                    <div className="flex justify-between items-start mb-3 pl-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${
+                            isCompleted ? 'text-google-green-dark bg-green-50' : 
+                            isCheckedIn ? 'text-google-yellow-dark bg-yellow-50' : 
+                            'text-google-blue bg-blue-50'
+                          }`}>
+                            {formatDate(shift.start_time)}
+                          </span>
+                          {isCheckedIn && (
+                             <span className="text-[10px] font-bold text-google-yellow-dark bg-yellow-50 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1">
+                               <div className="w-1 h-1 rounded-full bg-google-yellow animate-pulse"></div> กำลังทำงาน
+                             </span>
+                          )}
+                          {isCompleted && (
+                             <span className="text-[10px] font-bold text-google-green-dark bg-green-50 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1">
+                               <CheckCircle className="w-3 h-3" /> งานเสร็จสิ้น
+                             </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{shift.location_name}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                         <div className="text-lg font-bold text-gray-900">{formatTimeRange(shift.start_time, shift.end_time)}</div>
+                         <div className="text-[10px] text-gray-400 font-medium">#{shift.id.slice(0,4)}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      {!attendanceLog && today && (
+                        <M3Button 
+                          onClick={() => handleCheckIn(shift)}
+                          loading={isProcessing}
+                          className="w-full py-5 text-lg shadow-lg shadow-blue-100 bg-google-blue hover:bg-blue-600"
+                          icon={<MapPin className="w-5 h-5" />}
+                        >
+                          📍 CHECK IN
+                        </M3Button>
+                      )}
+
+                      {isCheckedIn && (
+                        <M3Button 
+                          onClick={() => handleCheckOut(attendanceLog.id)}
+                          loading={isProcessing}
+                          className="w-full bg-google-red hover:bg-red-700 py-5 text-lg shadow-lg shadow-red-100"
+                          icon={<CheckCircle className="w-5 h-5" />}
+                        >
+                          🏁 CHECK OUT NOW
+                        </M3Button>
+                      )}
+
+                      {isCompleted && (
+                        <div className="w-full bg-green-50 text-green-700 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-green-100">
+                          <CheckCircle className="w-5 h-5" />
+                          ✅ Shift Completed
+                        </div>
+                      )}
+
+                      {!today && !attendanceLog && (
+                        <div className="text-center py-2 text-xs text-gray-400 font-medium italic">
+                          งานจะเริ่มในวันที่ {formatDate(shift.start_time)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -237,15 +287,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         {activeTab === 'EXTRA_CASH' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
              
-             <div className="bg-gradient-to-r from-primary to-tertiary rounded-[12px] p-4 text-on-primary shadow-lg relative overflow-hidden">
+             <div className="bg-gradient-to-r from-google-yellow to-google-red rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-20">
                    <Flame className="w-24 h-24" />
                 </div>
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                   <Flame className="w-5 h-5 fill-tertiary-container text-tertiary-container animate-pulse" />
+                   <Flame className="w-5 h-5 fill-yellow-300 text-yellow-300 animate-pulse" />
                    Surge Pricing Active!
                 </h2>
-                <p className="text-on-primary/80 text-xs mt-1 max-w-[85%]">
+                <p className="text-yellow-100 text-xs mt-1 max-w-[85%]">
                    รับงานด่วนเพื่อรับค่าแรงเรทพิเศษ ยืนยันปุ๊บรับงานปั๊บ
                 </p>
              </div>
@@ -260,15 +310,63 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                    <p>ขณะนี้ยังไม่มีงานด่วน</p>
                 </div>
              ) : (
-                hotShifts.map(shift => (
-                  <ShiftCard 
-                    key={shift.id}
-                    shift={shift}
-                    isManager={false}
-                    onAction={handleAcceptClick}
-                    actionLabel="รับงานทันที"
-                  />
-                ))
+                hotShifts.map(shift => {
+                  const isSurge = shift.current_pay_rate > shift.base_pay_rate;
+                  const multiplier = Number((shift.current_pay_rate / shift.base_pay_rate).toFixed(2));
+                  
+                  return (
+                    <div key={shift.id} className="bg-white rounded-2xl p-1 shadow-md border border-orange-100 relative transform transition-all active:scale-[0.99]">
+                      <div className="bg-gradient-to-br from-white to-orange-50 p-4 rounded-2xl">
+                        
+                        <div className="flex justify-between items-start mb-2">
+                           <div className="flex items-center gap-1.5 bg-red-100 text-google-red px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0">
+                              <Flame className="w-3 h-3 fill-google-red" />
+                              งานด่วน
+                           </div>
+                           <div className="text-[10px] font-bold text-gray-400 truncate ml-2">{formatDate(shift.start_time)}</div>
+                        </div>
+
+                        <div className="flex justify-between items-end gap-2 mb-4">
+                           <div className="flex-1 min-w-0">
+                              <h3 className="text-xl font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
+                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                 <Clock className="w-3 h-3 shrink-0" />
+                                 {formatTimeRange(shift.start_time, shift.end_time)}
+                              </div>
+                           </div>
+                           <div className="text-right shrink-0">
+                              {isSurge && (
+                                 <div className="text-[10px] text-gray-400 line-through mb-0.5">
+                                    ฿{shift.base_pay_rate?.toLocaleString()}
+                                 </div>
+                              )}
+                              <div className="flex items-center justify-end gap-1 text-google-red-dark font-black text-2xl leading-none">
+                                 <span>฿{shift.current_pay_rate?.toLocaleString()}</span>
+                              </div>
+                              {isSurge && (
+                                 <div className="text-[9px] font-bold bg-google-red-dark text-white px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-wider">
+                                    เรทพิเศษ {multiplier}x
+                                 </div>
+                              )}
+                           </div>
+                        </div>
+
+                        <M3Button 
+                           onClick={() => handleAcceptClick(shift)}
+                           className="w-full bg-gradient-to-r from-google-yellow to-google-red py-5 text-xl shadow-xl shadow-red-100"
+                           icon={<ChevronRight className="w-6 h-6" />}
+                        >
+                           รับงานทันที
+                        </M3Button>
+                        
+                        <div className="text-center text-[10px] text-gray-400 mt-2 font-medium truncate px-2">
+                           {shift.location_name} • ด่วนมาก
+                        </div>
+
+                      </div>
+                    </div>
+                  );
+                })
              )}
           </div>
         )}
@@ -291,7 +389,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
             <button 
               onClick={handleConfirmAccept}
               disabled={isProcessing}
-              className="flex-1 px-4 py-3 rounded-2xl bg-orange-600 text-white font-bold hover:bg-orange-700 shadow-lg shadow-orange-100 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+              className="flex-1 px-4 py-3 rounded-2xl bg-google-blue text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
             >
               {isProcessing ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -302,9 +400,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         }
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 bg-orange-50 p-3 rounded-2xl border border-orange-100">
-             <Info className="w-5 h-5 text-orange-600 shrink-0" />
-             <p className="text-xs text-orange-800 font-bold leading-relaxed">
+          <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-2xl border border-blue-100">
+             <Info className="w-5 h-5 text-google-blue shrink-0" />
+             <p className="text-xs text-blue-800 font-bold leading-relaxed">
                 กรุณาตรวจสอบเวลาและสถานที่ก่อนกดยืนยัน หากรับแล้วไม่มาทำงานจะส่งผลต่อคะแนนความน่าเชื่อถือ
              </p>
           </div>
@@ -317,7 +415,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 </div>
                 <div className="col-span-1 text-right">
                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">ค่าแรง</p>
-                   <p className="font-black text-red-600 text-lg">฿{selectedShiftForAccept?.current_pay_rate?.toLocaleString()}<span className="text-[10px] text-gray-400 font-normal ml-0.5">/ชม.</span></p>
+                   <p className="font-black text-google-red-dark text-lg">฿{selectedShiftForAccept?.current_pay_rate?.toLocaleString()}<span className="text-[10px] text-gray-400 font-normal ml-0.5">/ชม.</span></p>
                 </div>
                 <div className="col-span-2 border-t border-gray-100 pt-3">
                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">สถานที่ทำงาน</p>

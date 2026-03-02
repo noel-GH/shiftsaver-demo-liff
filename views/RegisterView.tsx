@@ -86,12 +86,12 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
   };
 
   return (
-    <div className="min-h-screen bg-indigo-600 flex flex-col items-center justify-center p-6 text-white">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-gray-900">
       
       {/* Welcome Header */}
       <div className="text-center mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-        <h1 className="text-3xl font-extrabold mb-2 tracking-tight">Welcome to ShiftSaver!</h1>
-        <p className="text-indigo-100 max-w-xs mx-auto text-sm">
+        <h1 className="text-3xl font-extrabold mb-2 tracking-tight text-google-blue">Welcome to ShiftSaver!</h1>
+        <p className="text-gray-500 max-w-xs mx-auto text-sm">
           Join the crew and start earning on your own schedule.
         </p>
       </div>
@@ -100,21 +100,21 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
       <div className="bg-white text-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
         
         {/* LINE Identity Section */}
-        <div className="bg-indigo-50 p-6 border-b border-indigo-100 flex flex-col items-center text-center">
+        <div className="bg-blue-50 p-6 border-b border-blue-100 flex flex-col items-center text-center">
            <div className="relative mb-3">
               <img 
                 src={lineProfile?.pictureUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"} 
                 alt="Profile" 
                 className="w-20 h-20 rounded-2xl border-4 border-white shadow-md object-cover"
               />
-              <div className="absolute bottom-0 right-0 bg-green-500 p-1 rounded-full border-2 border-white">
+              <div className="absolute bottom-0 right-0 bg-google-green p-1 rounded-full border-2 border-white">
                 <ShieldCheck className="w-3 h-3 text-white" />
               </div>
            </div>
            <h2 className="font-bold text-gray-900 text-lg">
              {lineProfile?.displayName || "New User"}
            </h2>
-           <p className="text-xs text-indigo-400 font-medium bg-indigo-100 px-2 py-0.5 rounded-lg mt-1">
+           <p className="text-xs text-google-blue font-medium bg-blue-100 px-2 py-0.5 rounded-lg mt-1">
              LINE Verified Account
            </p>
         </div>
@@ -142,7 +142,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-google-blue focus:border-google-blue outline-none transition-all bg-gray-50 focus:bg-white"
                   required
                 />
               </div>
@@ -160,7 +160,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="Ex. 081-234-5678"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-google-blue focus:border-google-blue outline-none transition-all bg-gray-50 focus:bg-white"
                   required
                 />
               </div>
@@ -170,7 +170,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-google-blue text-white font-bold py-3.5 rounded-2xl hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
@@ -188,7 +188,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ lineUserId, lineProf
         </div>
       </div>
 
-      <div className="mt-8 flex items-center gap-2 text-indigo-200 text-xs opacity-70">
+      <div className="mt-8 flex items-center gap-2 text-gray-400 text-xs opacity-70">
          <Smile className="w-4 h-4" />
          <span>Trusted by 150+ staff members</span>
       </div>

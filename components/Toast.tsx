@@ -27,10 +27,10 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration =
   };
 
   const bgColors = {
-    success: 'bg-primary-container',
-    error: 'bg-error-container',
-    warning: 'bg-tertiary-container',
-    info: 'bg-secondary-container',
+    success: 'bg-[#EADDFF]',
+    error: 'bg-[#F9DEDC]',
+    warning: 'bg-[#FEF3E8]',
+    info: 'bg-[#E8F0FE]',
   };
 
   const defaultSubtitles = {
@@ -47,14 +47,14 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration =
       exit={{ opacity: 0, y: 20, x: '-50%', transition: { duration: 0.2 } }}
       className={`fixed bottom-10 left-1/2 z-[100] flex items-center gap-4 px-4 py-4 rounded-2xl shadow-xl ${bgColors[type]} w-[calc(100%-40px)] max-w-[400px] border border-white/20 backdrop-blur-sm`}
     >
-      <div className="shrink-0 bg-surface rounded-2xl p-2 shadow-sm flex items-center justify-center">
+      <div className="shrink-0 bg-white rounded-2xl p-2 shadow-sm flex items-center justify-center">
         {icons[type]}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-[14px] font-bold text-on-surface leading-tight">
+        <h4 className="text-[14px] font-bold text-gray-900 leading-tight">
           {message.replace(/^[✅❌⚠️📢🗑]\s*/, '')}
         </h4>
-        <p className="text-[12px] text-on-surface-variant mt-0.5 leading-tight">
+        <p className="text-[12px] text-gray-600 mt-0.5 leading-tight">
           {defaultSubtitles[type]}
         </p>
       </div>

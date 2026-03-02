@@ -18,10 +18,10 @@ export const M3Button: React.FC<M3ButtonProps> = ({
   const baseStyles = "relative flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-colors overflow-hidden";
   
   const variants = {
-    filled: "bg-primary text-on-primary hover:opacity-90",
-    tonal: "bg-secondary-container text-on-secondary-container hover:opacity-90",
-    outlined: "border-2 border-outline text-primary hover:bg-surface-variant/20",
-    text: "text-primary hover:bg-surface-variant/20"
+    filled: "bg-indigo-600 text-white hover:bg-indigo-700",
+    tonal: "bg-indigo-100 text-indigo-900 hover:bg-indigo-200",
+    outlined: "border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50",
+    text: "text-indigo-600 hover:bg-indigo-50"
   };
 
   return (
@@ -60,7 +60,7 @@ export const M3IconButton: React.FC<M3ButtonProps> = ({ icon, className = '', ..
       whileHover={{ scale: 1.1, rotate: 5 }}
       whileTap={{ scale: 0.9, rotate: -5 }}
       transition={{ type: "spring", stiffness: 500, damping: 15 }}
-      className={`p-3 rounded-2xl bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary ${className}`}
+      className={`p-3 rounded-2xl bg-white border border-gray-100 shadow-sm text-gray-600 hover:text-indigo-600 hover:border-indigo-100 ${className}`}
       {...props}
     >
       {icon}

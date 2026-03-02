@@ -42,14 +42,14 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative bg-surface-container-high opacity-100 rounded-t-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[92vh]"
+            className="relative bg-white opacity-100 rounded-t-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[92vh]"
           >
 
-            <div className="flex justify-between items-center p-4 border-b border-outline-variant relative bg-surface-container-high">
-              <button onClick={onClose} className="p-2 hover:bg-on-surface/5 rounded-2xl transition-colors z-10 outline-none">
-                <X className="w-5 h-5 text-on-surface-variant" />
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 relative bg-white">
+              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors z-10 outline-none">
+                <X className="w-5 h-5 text-gray-500" />
               </button>
-              <h3 className="font-bold text-lg text-on-surface absolute left-1/2 transform -translate-x-1/2">{title}</h3>
+              <h3 className="font-bold text-lg text-gray-900 absolute left-1/2 transform -translate-x-1/2">{title}</h3>
               <div className="w-9"></div> {/* Spacer to balance the close button */}
             </div>
 
@@ -58,7 +58,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             </div>
 
             {footer && (
-              <div className="bg-surface-container-high p-4 flex justify-end gap-3 border-t border-outline-variant relative z-20">
+              <div className="bg-white p-4 flex justify-end gap-3 border-t border-gray-100 relative z-20">
                 {footer}
               </div>
             )}

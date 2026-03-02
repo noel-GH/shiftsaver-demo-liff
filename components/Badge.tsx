@@ -7,13 +7,13 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ status }) => {
   const styles: Record<ShiftStatus, string> = {
-    [ShiftStatus.SCHEDULED]: 'bg-primary-container text-on-primary-container border-primary-container',
-    [ShiftStatus.CHECKED_IN]: 'bg-tertiary-container text-on-tertiary-container border-tertiary-container',
-    [ShiftStatus.COMPLETED]: 'bg-surface-variant text-on-surface-variant border-outline-variant',
-    [ShiftStatus.GHOSTED]: 'bg-error-container text-on-error-container border-error animate-pulse',
-    [ShiftStatus.BIDDING]: 'bg-secondary-container text-on-secondary-container border-secondary-container',
-    [ShiftStatus.FILLED]: 'bg-primary-container text-on-primary-container border-primary-container',
-    [ShiftStatus.CANCELLED]: 'bg-surface-variant text-on-surface-variant border-outline-variant opacity-50',
+    [ShiftStatus.SCHEDULED]: 'bg-google-blue/10 text-google-blue border-google-blue/20',
+    [ShiftStatus.CHECKED_IN]: 'bg-google-green/10 text-google-green-dark border-google-green/20',
+    [ShiftStatus.COMPLETED]: 'bg-gray-100 text-gray-800 border-gray-200',
+    [ShiftStatus.GHOSTED]: 'bg-google-red/10 text-google-red-dark border-google-red/20 animate-pulse',
+    [ShiftStatus.BIDDING]: 'bg-google-yellow/10 text-google-yellow-dark border-google-yellow/20',
+    [ShiftStatus.FILLED]: 'bg-purple-100 text-purple-800 border-purple-200',
+    [ShiftStatus.CANCELLED]: 'bg-gray-100 text-gray-500 border-gray-200',
   };
 
   const labels: Record<ShiftStatus, string> = {

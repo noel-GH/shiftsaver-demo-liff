@@ -15,7 +15,7 @@ interface M3NavigationBarProps {
 
 export const M3NavigationBar: React.FC<M3NavigationBarProps> = ({ items, activeId, onChange }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant px-6 pt-3 pb-8 flex justify-around items-center z-40 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] rounded-t-[32px]">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 pt-3 pb-8 flex justify-around items-center z-40 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] rounded-t-[32px]">
       {items.map((item) => {
         const isActive = activeId === item.id;
         return (
@@ -28,7 +28,7 @@ export const M3NavigationBar: React.FC<M3NavigationBarProps> = ({ items, activeI
               {isActive && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className="absolute inset-0 bg-secondary-container rounded-2xl"
+                  className="absolute inset-0 bg-indigo-100 rounded-2xl"
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 />
               )}
@@ -37,12 +37,12 @@ export const M3NavigationBar: React.FC<M3NavigationBarProps> = ({ items, activeI
                   scale: isActive ? 1.2 : 1,
                   y: isActive ? -2 : 0
                 }}
-                className={`relative z-10 ${isActive ? 'text-on-secondary-container' : 'text-on-surface-variant group-hover:text-on-surface'}`}
+                className={`relative z-10 ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`}
               >
                 {item.icon}
               </motion.div>
             </div>
-            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
               {item.label}
             </span>
           </button>
