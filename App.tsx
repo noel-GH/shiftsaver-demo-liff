@@ -235,10 +235,10 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-white text-gray-900">
         <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
            <div className="relative flex gap-1">
-              <div className="w-3 h-3 bg-google-blue rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-google-red rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-google-yellow rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              <div className="w-3 h-3 bg-google-green rounded-full animate-bounce" style={{ animationDelay: '450ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '450ms' }}></div>
            </div>
            <div className="text-center space-y-1">
               <h2 className="text-lg font-black tracking-tight text-google-blue">ShiftSaver</h2>
@@ -277,7 +277,7 @@ const AppContent: React.FC = () => {
                     onClick={() => toggleDevRole(UserRole.MANAGER)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                        user?.role === UserRole.MANAGER 
-                       ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                       ? 'bg-google-navy-dark text-white shadow-lg shadow-google-navy-dark/30' 
                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                     }`}
                  >
