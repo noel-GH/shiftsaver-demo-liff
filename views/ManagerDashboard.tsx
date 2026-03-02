@@ -367,7 +367,7 @@ export const ManagerDashboard: React.FC = () => {
         {/* Action Button: Create Shift */}
         <M3Button 
            onClick={() => setCreateModalOpen(true)}
-           className="w-full py-6 text-lg shadow-xl shadow-blue-100 bg-google-blue hover:bg-blue-600"
+           className="w-full py-6 text-lg shadow-xl shadow-blue-100 bg-google-navy-dark hover:bg-google-navy-dark"
            icon={<Plus className="w-6 h-6" />}
         >
            สร้างตารางงานใหม่
@@ -402,7 +402,7 @@ export const ManagerDashboard: React.FC = () => {
                    } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
                        action = handleFindReplacementClick;
                        label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : "ประกาศหาพนักงานด่วน";
-                       color = "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-100";
+                       color = "bg-google-red-dark hover:bg-google-red-dark shadow-lg shadow-red-100";
                    }
 
                    return (
@@ -795,7 +795,7 @@ export const ManagerDashboard: React.FC = () => {
                 </div>
                 <div className="col-span-2 border-t border-gray-200 pt-3 mt-1 flex justify-between items-center">
                    <span className="font-black text-gray-900">เรทปัจจุบัน:</span>
-                   <span className={`font-black text-xl ${selectedShift?.current_pay_rate! > selectedShift?.base_pay_rate! ? 'text-red-600' : 'text-indigo-600'}`}>
+                   <span className={`font-black text-xl ${selectedShift?.current_pay_rate! > selectedShift?.base_pay_rate! ? 'text-red-600' : 'text-google-navy-dark'}`}>
                     ฿{selectedShift?.current_pay_rate?.toLocaleString()}/ชม.
                    </span>
                 </div>

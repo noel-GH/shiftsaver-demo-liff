@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 
 export const M3LoadingIndicator: React.FC<{ size?: number; color?: string }> = ({ 
   size = 40, 
-  color = "stroke-indigo-600" 
+  color = "stroke-google-navy-dark" 
 }) => {
   return (
     <div className="flex items-center justify-center p-4">
@@ -34,12 +34,12 @@ export const M3LoadingIndicator: React.FC<{ size?: number; color?: string }> = (
 
 export const M3ProgressIndicator: React.FC<{ progress: number }> = ({ progress }) => {
   return (
-    <div className="w-full h-2 bg-indigo-50 rounded-full overflow-hidden relative">
+    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden relative">
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${progress}%` }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="h-full bg-indigo-600 rounded-full relative"
+        className="h-full bg-google-navy-dark rounded-full relative"
       >
         <motion.div
           animate={{ x: ['0%', '100%'], opacity: [0, 1, 0] }}

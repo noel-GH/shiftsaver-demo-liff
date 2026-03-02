@@ -28,21 +28,20 @@ export const M3NavigationBar: React.FC<M3NavigationBarProps> = ({ items, activeI
               {isActive && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className="absolute inset-0 bg-indigo-100 rounded-2xl"
+                  className="absolute inset-0 bg-gray-100 rounded-2xl"
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 />
               )}
               <motion.div
                 animate={{ 
-                  scale: isActive ? 1.2 : 1,
-                  y: isActive ? -2 : 0
+                  scale: isActive ? 1.1 : 1,
                 }}
-                className={`relative z-10 ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`}
+                className={`relative z-10 ${isActive ? 'text-google-navy-dark' : 'text-gray-400 group-hover:text-gray-600'}`}
               >
                 {item.icon}
               </motion.div>
             </div>
-            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
+            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-google-navy-dark' : 'text-gray-400'}`}>
               {item.label}
             </span>
           </button>
@@ -67,16 +66,15 @@ export const M3NavigationRail: React.FC<M3NavigationBarProps> = ({ items, active
               {isActive && (
                 <motion.div
                   layoutId="rail-indicator"
-                  className="absolute inset-0 bg-indigo-100 rounded-2xl"
+                  className="absolute inset-0 bg-gray-100 rounded-2xl"
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 />
               )}
               <motion.div
                 animate={{ 
-                  scale: isActive ? 1.2 : 1,
-                  x: isActive ? 2 : 0
+                  scale: isActive ? 1.1 : 1,
                 }}
-                className={`relative z-10 ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`}
+                className={`relative z-10 ${isActive ? 'text-google-navy-dark' : 'text-gray-400 group-hover:text-gray-600'}`}
               >
                 {item.icon}
               </motion.div>

@@ -27,7 +27,7 @@ export const M3ButtonGroup: React.FC<M3ButtonGroupProps> = ({ options, value, on
               />
             )}
             <span className={`relative z-20 text-xs font-bold transition-colors duration-200 ${
-              isActive ? 'text-indigo-900' : 'text-gray-500'
+              isActive ? 'text-google-navy-dark' : 'text-gray-500'
             }`}>
               {option}
             </span>
@@ -55,7 +55,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({ label, onClick }) 
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
         /* เอา w-full ออก และเปลี่ยนเป็น rounded-full เพื่อให้ขอบมนสวยงาม */
-        className="w-full flex items-center justify-center bg-indigo-600 text-white px-6 py-4 rounded-full font-bold text-sm shadow-md hover:bg-indigo-700 transition-colors"
+        className="w-full flex items-center justify-center bg-google-navy-dark text-white px-6 py-4 rounded-full font-bold text-sm shadow-md hover:bg-opacity-90 transition-colors"
       >
         {label}
       </motion.button>

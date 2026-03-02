@@ -18,17 +18,17 @@ export const M3Button: React.FC<M3ButtonProps> = ({
   const baseStyles = "relative flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-colors overflow-hidden";
   
   const variants = {
-    filled: "bg-indigo-600 text-white hover:bg-indigo-700",
-    tonal: "bg-indigo-100 text-indigo-900 hover:bg-indigo-200",
-    outlined: "border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50",
-    text: "text-indigo-600 hover:bg-indigo-50"
+    filled: "bg-google-navy-dark text-white hover:bg-opacity-90",
+    tonal: "bg-gray-100 text-google-navy-dark hover:bg-gray-200",
+    outlined: "border-2 border-gray-200 text-google-navy-dark hover:bg-gray-50",
+    text: "text-google-navy-dark hover:bg-gray-50"
   };
 
   return (
     <motion.button
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.95, rotate: -1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 15 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={`${baseStyles} ${variants[variant]} ${className}`}
       {...props}
     >
@@ -57,10 +57,10 @@ export const M3Button: React.FC<M3ButtonProps> = ({
 export const M3IconButton: React.FC<M3ButtonProps> = ({ icon, className = '', ...props }) => {
   return (
     <motion.button
-      whileHover={{ scale: 1.1, rotate: 5 }}
-      whileTap={{ scale: 0.9, rotate: -5 }}
-      transition={{ type: "spring", stiffness: 500, damping: 15 }}
-      className={`p-3 rounded-2xl bg-white border border-gray-100 shadow-sm text-gray-600 hover:text-indigo-600 hover:border-indigo-100 ${className}`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className={`p-3 rounded-2xl bg-white border border-gray-100 shadow-sm text-gray-600 hover:text-google-navy-dark hover:border-gray-200 ${className}`}
       {...props}
     >
       {icon}

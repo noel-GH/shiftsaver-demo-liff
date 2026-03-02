@@ -40,16 +40,16 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 transition-all outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${isOpen ? 'ring-2 ring-indigo-500 border-indigo-500' : ''}`}
+        className={`w-full text-left bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 transition-all outline-none focus:ring-2 focus:ring-google-navy-dark focus:border-google-navy-dark ${isOpen ? 'ring-2 ring-google-navy-dark border-google-navy-dark' : ''}`}
       >
         <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">
           {label}
         </span>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-bold text-gray-900 leading-tight">
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-sm font-bold text-gray-900 leading-tight break-words flex-1">
             {selectedOption?.label}
           </span>
-          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -73,12 +73,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
                   }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between transition-colors ${
                     value === option.value 
-                      ? 'bg-indigo-50 text-indigo-600' 
+                      ? 'bg-gray-100 text-google-navy-dark' 
                       : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  {option.label}
-                  {value === option.value && <Check className="w-4 h-4" />}
+                  <span className="flex-1 break-words leading-tight">{option.label}</span>
+                  {value === option.value && <Check className="w-4 h-4 shrink-0 ml-2" />}
                 </button>
               ))}
             </div>

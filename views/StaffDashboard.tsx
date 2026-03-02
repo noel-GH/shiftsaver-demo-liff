@@ -233,7 +233,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                           )}
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5 truncate">{shift.location_name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 break-words whitespace-normal">{shift.location_name}</p>
                       </div>
                       <div className="text-right shrink-0">
                          <div className="text-lg font-bold text-gray-900">{formatTimeRange(shift.start_time, shift.end_time)}</div>
@@ -359,7 +359,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                            รับงานทันที
                         </M3Button>
                         
-                        <div className="text-center text-[10px] text-gray-400 mt-2 font-medium truncate px-2">
+                        <div className="text-center text-[10px] text-gray-400 mt-2 font-medium break-words whitespace-normal px-2">
                            {shift.location_name} • ด่วนมาก
                         </div>
 
@@ -421,7 +421,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">สถานที่ทำงาน</p>
                    <div className="flex items-center gap-1.5 font-bold text-gray-900 text-sm">
                       <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="truncate">{selectedShiftForAccept?.location_name}</span>
+                      <span className="break-words whitespace-normal">{selectedShiftForAccept?.location_name}</span>
                    </div>
                 </div>
                 <div className="col-span-2 border-t border-gray-100 pt-3">

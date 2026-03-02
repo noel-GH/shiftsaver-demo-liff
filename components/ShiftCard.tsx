@@ -41,7 +41,7 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
              </h3>
               {isSurge && <span className="shrink-0 bg-google-red text-white text-[9px] px-1.5 py-0.5 rounded-lg font-bold uppercase tracking-wider">Surge</span>}
           </div>
-          <span className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider truncate">{shift.location_name}</span>
+          <span className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider break-words whitespace-normal">{shift.location_name}</span>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <Badge status={shift.status} />
@@ -87,7 +87,7 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
         {isManager && (
             <div className="flex items-center gap-2 col-span-2 pt-1 border-t border-gray-50">
                 <UserIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span className={`text-xs truncate ${shift.user ? 'text-gray-700 font-medium' : 'text-gray-400 italic'}`}>
+                <span className={`text-xs break-words whitespace-normal ${shift.user ? 'text-gray-700 font-medium' : 'text-gray-400 italic'}`}>
                     {shift.user ? shift.user.display_name : 'ยังไม่มีผู้รับงาน (Open)'}
                 </span>
             </div>
