@@ -51,7 +51,7 @@ export const ManagerDashboard: React.FC = () => {
   }, []);
 
   const [newShift, setNewShift] = useState({
-    role_required: 'Server',
+    role_required: 'WH Office',
     location_name: 'Main Store',
     start_time: '09:00',
     end_time: '17:00',
@@ -385,7 +385,22 @@ export const ManagerDashboard: React.FC = () => {
 
         {/* Action Button: Create Shift */}
         <M3Button 
-           onClick={() => setCreateModalOpen(true)}
+           onClick={() => {
+             setEditingShift(null);
+             setStartDate(new Date());
+             setEndDate(addDays(new Date(), 1));
+             setNewShift({
+               role_required: 'WH Office',
+               location_name: 'Main Store',
+               start_time: '09:00',
+               end_time: '17:00',
+               base_pay_rate: 150,
+               multiplier: 1,
+               user_id: '',
+               num_slots: 1
+             });
+             setCreateModalOpen(true);
+           }}
            className="w-full py-6 text-lg shadow-xl shadow-blue-100 bg-google-navy-dark hover:bg-google-navy-dark"
            icon={<Plus className="w-6 h-6" />}
         >
@@ -601,7 +616,7 @@ export const ManagerDashboard: React.FC = () => {
               label="ตำแหน่งงาน"
               value={newShift.role_required}
               onChange={val => setNewShift({...newShift, role_required: val})}
-              options={['WH Officer', 'IT Staff', 'MHE Officer', 'Delivery', 'Maintenance']}
+              options={['WH Office', 'IT Staff', 'MHE Officer', 'Delivery', 'Maintenance']}
               className="rounded-2xl bg-gray-50 border-gray-200"
             />
             

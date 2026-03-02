@@ -28,7 +28,7 @@ const SEED_USERS: Partial<User>[] = [
   },
   {
     line_user_id: 'staff_sarah',
-    display_name: 'Sarah Server',
+    display_name: 'Sarah WH Office',
     role: UserRole.STAFF,
     reliability_score: 95,
     is_active: true,
@@ -36,7 +36,7 @@ const SEED_USERS: Partial<User>[] = [
   },
   {
     line_user_id: 'staff_john',
-    display_name: 'John Cook',
+    display_name: 'John IT Staff',
     role: UserRole.STAFF,
     reliability_score: 88,
     is_active: true,
@@ -44,7 +44,7 @@ const SEED_USERS: Partial<User>[] = [
   },
   {
     line_user_id: 'staff_emily',
-    display_name: 'Emily Cashier',
+    display_name: 'Emily MHE Officer',
     role: UserRole.STAFF,
     reliability_score: 92,
     is_active: true,
@@ -279,7 +279,7 @@ export const seedDatabase = async () => {
       start_time: setDateHours(today, 9),
       end_time: setDateHours(today, 15),
       status: ShiftStatus.CHECKED_IN,
-      role_required: 'Server',
+      role_required: 'WH Office',
       base_pay_rate: 15.0,
       current_pay_rate: 15.0,
       location_name: 'Downtown Burger'
@@ -289,7 +289,7 @@ export const seedDatabase = async () => {
       start_time: setDateHours(today, 11),
       end_time: setDateHours(today, 17),
       status: ShiftStatus.SCHEDULED,
-      role_required: 'Cook',
+      role_required: 'IT Staff',
       base_pay_rate: 18.0,
       current_pay_rate: 18.0,
       location_name: 'Downtown Burger'
