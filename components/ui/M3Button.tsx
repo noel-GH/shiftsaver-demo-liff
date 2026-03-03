@@ -18,10 +18,10 @@ export const M3Button: React.FC<M3ButtonProps> = ({
   const baseStyles = "relative flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-colors overflow-hidden";
   
   const variants = {
-    filled: "bg-google-navy-dark text-white hover:bg-opacity-90",
-    tonal: "bg-gray-100 text-google-navy-dark hover:bg-gray-200",
-    outlined: "border-2 border-gray-200 text-google-navy-dark hover:bg-gray-50",
-    text: "text-google-navy-dark hover:bg-gray-50"
+    filled: "bg-google-blue text-white hover:bg-opacity-90",
+    tonal: "bg-blue-50 text-google-blue hover:bg-blue-100",
+    outlined: "border-2 border-gray-200 text-google-blue hover:bg-gray-50",
+    text: "text-google-blue hover:bg-gray-50"
   };
 
   return (

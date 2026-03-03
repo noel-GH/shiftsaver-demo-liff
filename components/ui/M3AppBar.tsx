@@ -37,9 +37,9 @@ export const M3AppBar: React.FC<M3AppBarProps> = ({ title, subtitle, leftAction,
             </motion.div>
           )}
           <motion.div style={{ scale: titleScale, y: titleY }}>
-            <h1 className="text-2xl font-black text-google-blue leading-tight">{title}</h1>
+            <h1 className="text-2xl font-black text-google-navy-dark leading-tight">{title}</h1>
             {subtitle && (
-              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+              <p className="text-[11px] text-google-green/70 font-bold uppercase tracking-widest mt-0.5">
                 {subtitle}
               </p>
             )}

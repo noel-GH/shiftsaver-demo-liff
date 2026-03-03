@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
 import { CustomSelect } from '../components/CustomSelect';
-import { LayoutDashboard, AlertTriangle, Activity, CalendarClock, Database, CheckCircle, Skull, Megaphone, Plus, Clock, MapPin, Briefcase, Wallet, Users, Info, Trash2, Layers, ChevronRight, Pencil, Check } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Activity, CalendarSync, CalendarClock, Database, CheckCircle, Skull, Megaphone, Plus, Clock, MapPin, Briefcase, Wallet, Users, Info, Trash2, Layers, ChevronRight, Pencil, Check } from 'lucide-react';
 import { format, differenceInHours, isBefore, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, addDays, startOfToday } from 'date-fns';
 import { ShiftCard } from '../components/ShiftCard';
 
@@ -336,17 +336,37 @@ export const ManagerDashboard: React.FC = () => {
       <M3AppBar 
         title="ShiftSaver" 
         subtitle="Manager Control"
-        leftAction={<LayoutDashboard className="w-6 h-6 text-google-blue" />}
+        leftAction={<CalendarSync className="w-6 h-6 text-google-blue" />}
         rightActions={
           <div className="flex items-center gap-2">
             <M3Button 
               variant="tonal"
               onClick={handleBroadcast} 
               loading={broadcasting}
-              className={`px-3 py-1.5 h-9 text-xs min-w-[64px] ${pendingNotificationCount > 0 ? 'bg-google-red text-red animate-pulse' : ''}`}
-              icon={<Megaphone className="w-4 h-4" />}
+              // เพิ่ม Logic สำหรับขอบ (Border) ให้กะพริบด้วย animate-pulse
+              className={`px-3 py-1.5 h-9 text-xs min-w-[64px] bg-white border transition-all duration-200
+                ${pendingNotificationCount > 0 
+                  ? 'border-google-red animate-pulse hover:bg-red-50 active:bg-red-100' 
+                  : 'border-gray-100 hover:bg-gray-50 active:bg-gray-100'
+                }
+              `}
+              icon={
+                <Megaphone 
+                  className={`w-4 h-4 ${
+                    pendingNotificationCount > 0 ? 'text-google-red' : 'text-gray-400'
+                  }`} 
+                />
+              }
             >
-              {pendingNotificationCount > 0 ? `${pendingNotificationCount}` : '0'}
+              {/* ส่วนตัวเลขที่กะพริบพร้อมกัน */}
+              <span className={`
+                ${pendingNotificationCount > 0 
+                  ? 'text-google-red font-black' 
+                  : 'text-gray-500'
+                }
+              `}>
+                {pendingNotificationCount}
+              </span>
             </M3Button>
             {shifts.length === 0 && !loading && (
               <M3IconButton 
@@ -401,7 +421,7 @@ export const ManagerDashboard: React.FC = () => {
              });
              setCreateModalOpen(true);
            }}
-           className="w-full py-6 text-lg shadow-xl shadow-blue-100 bg-google-navy-dark hover:bg-google-navy-dark"
+           className="w-full py-6 text-lg shadow-xl shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark"
            icon={<Plus className="w-6 h-6" />}
         >
            สร้างตารางงานใหม่
@@ -472,7 +492,7 @@ export const ManagerDashboard: React.FC = () => {
             onClick={handleCreateShiftSubmit}
             loading={isCreating}
             disabled={!calculatedStats.isValidRange}
-            className="w-full py-6 text-xl shadow-xl shadow-blue-200 bg-google-navy-dark hover:bg-google-navy-dark"
+            className="w-full py-6 text-xl shadow-xl shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark"
             icon={editingShift ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
           >
             {editingShift ? "บันทึกการแก้ไข" : `สร้างงานทั้งหมด ${calculatedStats.daysCount * newShift.num_slots} กะ`}

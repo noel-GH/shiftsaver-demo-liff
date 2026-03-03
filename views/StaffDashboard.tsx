@@ -209,7 +209,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
 
                 return (
                   <div key={shift.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isCompleted ? 'bg-google-green' : isCheckedIn ? 'bg-google-yellow' : 'bg-google-blue'}`}></div>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                      isCompleted ? 'bg-gradient-to-b from-google-green to-google-green-dark' : 
+                      isCheckedIn ? 'bg-gradient-to-b from-google-yellow to-google-yellow-dark' : 
+                      'bg-gradient-to-b from-google-blue to-blue-700'
+                    }`}></div>
                     
                     <div className="flex justify-between items-start mb-3 pl-2">
                       <div className="flex-1 min-w-0">
@@ -236,7 +240,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         <p className="text-xs text-gray-500 mt-0.5 break-words whitespace-normal">{shift.location_name}</p>
                       </div>
                       <div className="text-right shrink-0">
-                         <div className="text-lg font-bold text-gray-900">{formatTimeRange(shift.start_time, shift.end_time)}</div>
+                         <div className="text-lg font-bold text-google-blue">{formatTimeRange(shift.start_time, shift.end_time)}</div>
                          <div className="text-[10px] text-gray-400 font-medium">#{shift.id.slice(0,4)}</div>
                       </div>
                     </div>
@@ -246,7 +250,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         <M3Button 
                           onClick={() => handleCheckIn(shift)}
                           loading={isProcessing}
-                          className="w-full py-5 text-lg shadow-lg shadow-blue-100 bg-google-blue hover:bg-blue-600"
+                          className="w-full py-5 text-lg shadow-lg shadow-blue-100 bg-gradient-to-r from-google-blue to-blue-600 hover:to-blue-700"
                           icon={<MapPin className="w-5 h-5" />}
                         >
                           📍 CHECK IN
@@ -257,7 +261,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         <M3Button 
                           onClick={() => handleCheckOut(attendanceLog.id)}
                           loading={isProcessing}
-                          className="w-full bg-google-red hover:bg-red-700 py-5 text-lg shadow-lg shadow-red-100"
+                          className="w-full bg-gradient-to-r from-google-red to-google-red-dark hover:to-red-700 py-5 text-lg shadow-lg shadow-red-100"
                           icon={<CheckCircle className="w-5 h-5" />}
                         >
                           🏁 CHECK OUT NOW
@@ -265,7 +269,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       )}
 
                       {isCompleted && (
-                        <div className="w-full bg-green-50 text-green-700 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-green-100">
+                        <div className="w-full bg-green-50 text-google-green-dark py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-google-green/20">
                           <CheckCircle className="w-5 h-5" />
                           ✅ Shift Completed
                         </div>
@@ -287,15 +291,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         {activeTab === 'EXTRA_CASH' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
              
-             <div className="bg-gradient-to-r from-google-yellow to-google-red rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-20">
-                   <Flame className="w-24 h-24" />
+             <div className="bg-white border-2 border-google-yellow rounded-2xl p-4 text-gray-900 shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-10">
+                   <Flame className="w-24 h-24 text-google-red" />
                 </div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                   <Flame className="w-5 h-5 fill-yellow-300 text-yellow-300 animate-pulse" />
+                <h2 className="text-lg font-bold flex items-center gap-2 text-google-red">
+                   <Flame className="w-5 h-5 fill-google-red text-google-red animate-pulse" />
                    Surge Pricing Active!
                 </h2>
-                <p className="text-yellow-100 text-xs mt-1 max-w-[85%]">
+                <p className="text-gray-600 text-xs mt-1 max-w-[85%] font-medium">
                    รับงานด่วนเพื่อรับค่าแรงเรทพิเศษ ยืนยันปุ๊บรับงานปั๊บ
                 </p>
              </div>
@@ -304,10 +308,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 <div className="p-8 text-center text-gray-400">กำลังหาโอกาสรับงาน...</div>
              ) : hotShifts.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
-                   <div className="bg-gray-200 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <Briefcase className="w-8 h-8 text-gray-400" />
+                   <div className="bg-gray-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                      <Briefcase className="w-8 h-8 text-gray-300" />
                    </div>
-                   <p>ขณะนี้ยังไม่มีงานด่วน</p>
+                   <p className="font-bold">ขณะนี้ยังไม่มีงานด่วน</p>
                 </div>
              ) : (
                 hotShifts.map(shift => {
@@ -315,11 +319,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                   const multiplier = Number((shift.current_pay_rate / shift.base_pay_rate).toFixed(2));
                   
                   return (
-                    <div key={shift.id} className="bg-white rounded-2xl p-1 shadow-md border border-orange-100 relative transform transition-all active:scale-[0.99]">
-                      <div className="bg-gradient-to-br from-white to-orange-50 p-4 rounded-2xl">
+                    <div key={shift.id} className="bg-white rounded-2xl p-1 shadow-sm border border-gray-100 relative transform transition-all active:scale-[0.99]">
+                      <div className="bg-white p-4 rounded-2xl">
                         
                         <div className="flex justify-between items-start mb-2">
-                           <div className="flex items-center gap-1.5 bg-red-100 text-google-red px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0">
+                           <div className="flex items-center gap-1.5 bg-red-50 text-google-red px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 border border-red-100">
                               <Flame className="w-3 h-3 fill-google-red" />
                               งานด่วน
                            </div>
@@ -329,8 +333,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         <div className="flex justify-between items-end gap-2 mb-4">
                            <div className="flex-1 min-w-0">
                               <h3 className="text-xl font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
-                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                 <Clock className="w-3 h-3 shrink-0" />
+                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-1 font-medium">
+                                 <Clock className="w-3 h-3 shrink-0 text-google-blue" />
                                  {formatTimeRange(shift.start_time, shift.end_time)}
                               </div>
                            </div>
@@ -340,11 +344,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                                     ฿{shift.base_pay_rate?.toLocaleString()}
                                  </div>
                               )}
-                              <div className="flex items-center justify-end gap-1 text-google-red-dark font-black text-2xl leading-none">
+                              <div className="flex items-center justify-end gap-1 text-google-red font-black text-2xl leading-none">
                                  <span>฿{shift.current_pay_rate?.toLocaleString()}</span>
                               </div>
                               {isSurge && (
-                                 <div className="text-[9px] font-bold bg-google-red-dark text-white px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-wider">
+                                 <div className="text-[9px] font-bold bg-google-red text-white px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-wider">
                                     เรทพิเศษ {multiplier}x
                                  </div>
                               )}
@@ -353,13 +357,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
 
                         <M3Button 
                            onClick={() => handleAcceptClick(shift)}
-                           className="w-full bg-gradient-to-r from-google-yellow to-google-red py-5 text-xl shadow-xl shadow-red-100"
+                           className="w-full bg-google-blue py-5 text-xl shadow-lg shadow-blue-100"
                            icon={<ChevronRight className="w-6 h-6" />}
                         >
                            รับงานทันที
                         </M3Button>
                         
                         <div className="text-center text-[10px] text-gray-400 mt-2 font-medium break-words whitespace-normal px-2">
+                           <MapPin className="w-3 h-3 inline mr-1 text-gray-300" />
                            {shift.location_name} • ด่วนมาก
                         </div>
 
@@ -402,7 +407,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         <div className="space-y-4">
           <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-2xl border border-blue-100">
              <Info className="w-5 h-5 text-google-blue shrink-0" />
-             <p className="text-xs text-blue-800 font-bold leading-relaxed">
+             <p className="text-xs text-google-blue font-bold leading-relaxed">
                 กรุณาตรวจสอบเวลาและสถานที่ก่อนกดยืนยัน หากรับแล้วไม่มาทำงานจะส่งผลต่อคะแนนความน่าเชื่อถือ
              </p>
           </div>

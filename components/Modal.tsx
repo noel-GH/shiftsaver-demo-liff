@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
               <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors shrink-0 outline-none">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
-              <h3 className="font-bold text-lg text-gray-900 flex-1 text-center break-words leading-tight">{title}</h3>
+              <h3 className="font-bold text-lg text-google-blue flex-1 text-center break-words leading-tight">{title}</h3>
               <div className="w-9 shrink-0"></div> {/* Spacer to balance the close button */}
             </div>
 

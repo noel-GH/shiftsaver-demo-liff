@@ -14,7 +14,7 @@
   --color-google-navy-dark: #001D2F;
   
   /* Semantic Mappings */
-  --color-primary: var(--color-google-navy-dark);
+  --color-primary: var(--color-google-blue);
   --color-success: var(--color-google-green);
   --color-warning: var(--color-google-yellow);
   --color-error: var(--color-google-red);
