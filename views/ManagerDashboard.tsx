@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Shift, ShiftStatus, User } from '../types';
-import { getShifts, triggerReplacement, seedDatabase, markShiftAsGhost, createShift, getAllStaff, cancelShift, updateShift } from '../services/mockData';
+import { getShifts, triggerReplacement, seedDatabase, markShiftAsGhost, createShift, getAllStaff, cancelShift, updateShift, confirmShifts, broadcastShift } from '../services/mockData';
+import { supabase } from '../services/supabaseClient';
 import { notifyGhostsCron, notifySingleShift } from '../services/notificationService';
 import { M3AppBar, M3Toolbar } from '../components/ui/M3AppBar';
 import { M3Button, M3IconButton } from '../components/ui/M3Button';
@@ -64,8 +65,8 @@ export const ManagerDashboard: React.FC = () => {
   const [broadcasting, setBroadcasting] = useState(false);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'warning' | 'error'} | null>(null);
 
-  const fetchInitialData = async () => {
-    setLoading(true);
+  const fetchInitialData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [shiftsData, staffData] = await Promise.all([
         getShifts(),
@@ -76,12 +77,37 @@ export const ManagerDashboard: React.FC = () => {
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInitialData();
+    fetchInitialData(true);
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('manager-dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts' },
+        () => {
+          console.log('Shifts table changed, fetching updates...');
+          fetchInitialData(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_logs' },
+        () => {
+          console.log('Attendance logs changed, fetching updates...');
+          fetchInitialData(false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // --- Calculations for Create Shift Modal ---
@@ -142,20 +168,54 @@ export const ManagerDashboard: React.FC = () => {
   };
 
   const handleSingleBroadcast = async (shift: Shift) => {
+    if (shift.status === null) {
+      setToast({ message: "โปรดบันทึกตารางงานก่อนประกาศ", type: 'warning' });
+      return;
+    }
+
     setBroadcasting(true);
     try {
-      const result = await notifySingleShift(shift.id);
-      if (result.success) {
-        setToast({ message: `ส่งแจ้งเตือนสำหรับ ${shift.role_required} เรียบร้อย!`, type: 'success' });
+      let result;
+      if (shift.status === ShiftStatus.CREATED) {
+        // Step 1: Mark as Ghosted (Internal state, not yet bidding)
+        await markShiftAsGhost(shift.id);
+        setToast({ message: `เปลี่ยนสถานะ ${shift.role_required} เป็น Ghosted แล้ว`, type: 'success' });
         await fetchInitialData();
-      } else {
-        alert("Broadcast failed: " + result.error);
+      } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
+        // Step 2: Broadcast to LINE and set to BIDDING
+        result = await broadcastShift(shift.id);
+        if (result.success) {
+          setToast({ message: `ประกาศงาน ${shift.role_required} เรียบร้อย!`, type: 'success' });
+          await fetchInitialData();
+        } else {
+          alert("Broadcast failed: " + result.error);
+        }
       }
     } catch (e) {
       console.error(e);
-      alert("Error executing broadcast.");
+      alert("Error executing action.");
     } finally {
       setBroadcasting(false);
+    }
+  };
+
+  const handleConfirmAllDrafts = async () => {
+    const draftIds = shifts.filter(s => s.status === null).map(s => s.id);
+    if (draftIds.length === 0) return;
+
+    setLoading(true);
+    try {
+      const result = await confirmShifts(draftIds);
+      if (result.success) {
+        setToast({ message: "บันทึกตารางงานทั้งหมดเรียบร้อย!", type: 'success' });
+        await fetchInitialData();
+      } else {
+        alert("Error confirming shifts: " + result.error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -404,28 +464,45 @@ export const ManagerDashboard: React.FC = () => {
         </div>
 
         {/* Action Button: Create Shift */}
-        <M3Button 
-           onClick={() => {
-             setEditingShift(null);
-             setStartDate(new Date());
-             setEndDate(addDays(new Date(), 1));
-             setNewShift({
-               role_required: 'WH Office',
-               location_name: 'Main Store',
-               start_time: '09:00',
-               end_time: '17:00',
-               base_pay_rate: 150,
-               multiplier: 1,
-               user_id: '',
-               num_slots: 1
-             });
-             setCreateModalOpen(true);
-           }}
-           className="w-full py-6 text-lg shadow-xl shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark"
-           icon={<Plus className="w-6 h-6" />}
-        >
-           สร้างตารางงานใหม่
-        </M3Button>
+        <div className="space-y-3">
+          <M3Button 
+             onClick={() => {
+               setEditingShift(null);
+               setStartDate(new Date());
+               setEndDate(addDays(new Date(), 1));
+               setNewShift({
+                 role_required: 'WH Office',
+                 location_name: 'Main Store',
+                 start_time: '09:00',
+                 end_time: '17:00',
+                 base_pay_rate: 150,
+                 multiplier: 1,
+                 user_id: '',
+                 num_slots: 1
+               });
+               setCreateModalOpen(true);
+             }}
+             className="w-full py-6 text-lg shadow-xl shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark"
+             icon={<Plus className="w-6 h-6" />}
+          >
+             สร้างตารางงานใหม่
+          </M3Button>
+
+          {shifts.some(s => s.status === null) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <M3Button 
+                onClick={handleConfirmAllDrafts}
+                className="w-full py-4 bg-google-green hover:bg-google-green shadow-lg shadow-green-100"
+                icon={<Check className="w-5 h-5" />}
+              >
+                บันทึกตารางงานที่สร้างใหม่
+              </M3Button>
+            </motion.div>
+          )}
+        </div>
 
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -453,10 +530,11 @@ export const ManagerDashboard: React.FC = () => {
                        action = handleSimulateGhost;
                        label = "บันทึก No-Show";
                        color = "bg-gray-800 hover:bg-gray-900";
-                   } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
+                   } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.CREATED) {
                        action = handleFindReplacementClick;
-                       label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : "ประกาศหาพนักงานด่วน";
-                       color = "bg-google-red-dark hover:bg-google-red-dark shadow-lg shadow-red-100";
+                       label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : 
+                               shift.status === ShiftStatus.CREATED ? "ประกาศหาพนักงาน" : "ประกาศหาพนักงานด่วน";
+                       color = shift.status === ShiftStatus.CREATED ? "bg-google-blue hover:bg-blue-700" : "bg-google-red-dark hover:bg-google-red-dark shadow-lg shadow-red-100";
                    }
 
                    return (
@@ -746,26 +824,26 @@ export const ManagerDashboard: React.FC = () => {
         }
       >
         <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">ตำแหน่ง</p>
-                <p className="font-bold text-google-blue">{newShift.role_required}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ตำแหน่ง</p>
+                <p className="font-bold text-google-navy-dark">{newShift.role_required}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">จำนวน</p>
-                <p className="font-bold text-google-blue">{newShift.num_slots} คน / วัน</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">จำนวน</p>
+                <p className="font-bold text-google-navy-dark">{newShift.num_slots} คน / วัน</p>
               </div>
               <div className="col-span-2 border-t border-blue-100 pt-3">
-                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">ช่วงวันที่</p>
-                <p className="font-bold text-google-blue">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ช่วงวันที่</p>
+                <p className="font-bold text-google-navy-dark">
                   {startDate && format(startDate, 'd MMM')} - {endDate && format(endDate, 'd MMM yyyy')} 
-                  <span className="ml-2 text-xs font-medium text-google-blue">({calculatedStats.daysCount} วัน)</span>
+                  <span className="ml-2 text-xs font-medium text-google-navy-dark">({calculatedStats.daysCount} วัน)</span>
                 </p>
               </div>
               <div className="col-span-2 border-t border-blue-100 pt-3">
-                <p className="text-[10px] font-bold text-google-blue uppercase tracking-widest mb-1">เวลาทำงาน</p>
-                <p className="font-bold text-google-blue">{newShift.start_time} - {newShift.end_time} ({calculatedStats.hours} ชม.)</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">เวลาทำงาน</p>
+                <p className="font-bold text-google-navy-dark">{newShift.start_time} - {newShift.end_time} ({calculatedStats.hours} ชม.)</p>
               </div>
             </div>
           </div>
@@ -804,7 +882,19 @@ export const ManagerDashboard: React.FC = () => {
             >
               ยกเลิก
             </M3Button>
-            {selectedShift?.status !== ShiftStatus.BIDDING && (
+            {selectedShift?.status === ShiftStatus.CREATED && (
+                <M3Button 
+                    onClick={() => {
+                        handleSingleBroadcast(selectedShift);
+                        setModalOpen(false);
+                    }}
+                    className="flex-1 bg-google-blue hover:bg-blue-700 shadow-lg shadow-blue-100"
+                    icon={<Megaphone className="w-4 h-4" />}
+                >
+                    Broadcast ทันที
+                </M3Button>
+            )}
+            {(selectedShift?.status === ShiftStatus.GHOSTED || selectedShift?.status === ShiftStatus.BIDDING) && (
                 <M3Button 
                     onClick={confirmReplacement}
                     className="flex-1 bg-google-red hover:bg-red-700 shadow-lg shadow-red-100"
@@ -823,6 +913,16 @@ export const ManagerDashboard: React.FC = () => {
                 <h4 className="font-bold text-red-800 text-sm">พนักงานไม่มาทำงาน!</h4>
                 <p className="text-xs text-red-700 mt-1 leading-relaxed">
                     การประกาศหาพนักงานด่วนจะส่งแจ้งเตือนไปยังพนักงานทุกคนทันที โดยเพิ่มค่าแรงเป็น 1.5 เท่า
+                </p>
+                </div>
+            </div>
+          ) : selectedShift?.status === ShiftStatus.CREATED ? (
+            <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex items-start gap-3">
+                <Info className="w-5 h-5 text-google-blue shrink-0 mt-0.5" />
+                <div>
+                <h4 className="font-bold text-google-blue text-sm">ตารางงานที่บันทึกแล้ว</h4>
+                <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+                    ตารางงานนี้พร้อมสำหรับการประกาศ (Broadcast) คุณสามารถกดปุ่ม "Broadcast ทันที" เพื่อส่งแจ้งเตือนให้พนักงานทุกคน
                 </p>
                 </div>
             </div>

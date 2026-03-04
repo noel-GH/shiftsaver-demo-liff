@@ -27,8 +27,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   const [selectedShiftForAccept, setSelectedShiftForAccept] = useState<Shift | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const fetchShifts = async () => {
-    setLoading(true);
+  const fetchShifts = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [allShifts, userShifts] = await Promise.all([
         getShifts(),
@@ -39,12 +39,37 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     } catch (e) {
       console.error("Fetch error:", e);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchShifts();
+    fetchShifts(true);
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('staff-dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts' },
+        () => {
+          console.log('Shifts table changed, fetching updates...');
+          fetchShifts(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_logs' },
+        () => {
+          console.log('Attendance logs changed, fetching updates...');
+          fetchShifts(false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUser]);
 
   const handleAcceptClick = (shift: Shift) => {
@@ -66,21 +91,29 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
       });
 
       if (error) {
+        console.error("Edge function error:", error);
         setToast({ message: "การเชื่อมต่อผิดพลาด", type: 'error' });
-      } else if (data.success) {
+      } else if (data && data.success) {
         setToast({ message: data.message, type: 'success' });
-        await fetchShifts();
-        setAcceptModalOpen(false);
         
+        // Close modal immediately to avoid "blank screen" feel
+        setAcceptModalOpen(false);
+        setSelectedShiftForAccept(null);
+        
+        // Refresh data
+        await fetchShifts();
+        
+        // Auto switch tab after a short delay
         setTimeout(() => {
-             setActiveTab('SCHEDULE');
-        }, 1500);
+          setActiveTab('SCHEDULE');
+        }, 800);
       } else {
-        setToast({ message: data.message, type: 'error' });
+        setToast({ message: data?.message || "ไม่สามารถรับงานได้", type: 'error' });
         setAcceptModalOpen(false);
         await fetchShifts();
       }
     } catch (e) {
+      console.error("Accept error:", e);
       setToast({ message: "ระบบขัดข้อง", type: 'error' });
     } finally {
       setIsProcessing(false);
@@ -139,7 +172,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
   const hotShifts = shifts
-    .filter(s => s.status === ShiftStatus.BIDDING || s.status === ShiftStatus.GHOSTED);
+    .filter(s => s.status === ShiftStatus.BIDDING);
 
   const isToday = (dateString: string) => {
     const date = new Date(dateString);
@@ -208,52 +241,82 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 const isCompleted = attendanceLog && attendanceLog.check_out_time;
 
                 return (
-                  <div key={shift.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      isCompleted ? 'bg-gradient-to-b from-google-green to-google-green-dark' : 
-                      isCheckedIn ? 'bg-gradient-to-b from-google-yellow to-google-yellow-dark' : 
-                      'bg-gradient-to-b from-google-blue to-blue-700'
+                  <motion.div 
+                    key={shift.id} 
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`
+                      relative p-5 mb-4 rounded-[24px] transition-all duration-300
+                      ${isCompleted || isCheckedIn 
+                        ? 'bg-gray-100 border-transparent shadow-none' 
+                        : 'bg-white border border-gray-100 shadow-lg shadow-slate-900/5'
+                      }
+                      active:scale-[0.98]
+                    `}
+                  >
+                    {/* Status Indicator Strip */}
+                    <div className={`absolute left-0 top-6 bottom-6 w-1.5 rounded-r-full ${
+                      isCompleted ? 'bg-google-green' : 
+                      isCheckedIn ? 'bg-google-yellow' : 
+                      'bg-google-blue'
                     }`}></div>
                     
-                    <div className="flex justify-between items-start mb-3 pl-2">
+                    <div className="flex justify-between items-start mb-4 pl-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${
-                            isCompleted ? 'text-google-green-dark bg-green-50' : 
-                            isCheckedIn ? 'text-google-yellow-dark bg-yellow-50' : 
-                            'text-google-blue bg-blue-50'
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest ${
+                            isCompleted ? 'text-white bg-google-green' : 
+                            isCheckedIn ? 'text-google-navy-dark bg-google-yellow' : 
+                            'text-white bg-google-blue'
                           }`}>
                             {formatDate(shift.start_time)}
                           </span>
+                          
                           {isCheckedIn && (
-                             <span className="text-[10px] font-bold text-google-yellow-dark bg-yellow-50 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1">
-                               <div className="w-1 h-1 rounded-full bg-google-yellow animate-pulse"></div> กำลังทำงาน
+                             <span className="text-[10px] font-black text-google-yellow-dark bg-yellow-100/50 px-2.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border border-google-yellow/20">
+                               <div className="w-1.5 h-1.5 rounded-full bg-google-yellow animate-pulse"></div>
+                               กำลังทำงาน
                              </span>
                           )}
+                          
                           {isCompleted && (
-                             <span className="text-[10px] font-bold text-google-green-dark bg-green-50 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1">
-                               <CheckCircle className="w-3 h-3" /> งานเสร็จสิ้น
+                             <span className="text-[10px] font-black text-google-green-dark bg-green-100/50 px-2.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border border-google-green/20">
+                               <CheckCircle className="w-3.5 h-3.5" />
+                               งานเสร็จสิ้น
                              </span>
                           )}
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5 break-words whitespace-normal">{shift.location_name}</p>
+                        
+                        <h3 className={`text-xl font-black leading-tight break-words ${isCompleted || isCheckedIn ? 'text-gray-800' : 'text-google-navy-dark'}`}>
+                          {shift.role_required}
+                        </h3>
+                        
+                        <div className="flex items-center gap-1.5 mt-1.5 text-gray-500">
+                          <MapPin className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest truncate">
+                            {shift.location_name}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                         <div className="text-lg font-bold text-google-blue">{formatTimeRange(shift.start_time, shift.end_time)}</div>
-                         <div className="text-[10px] text-gray-400 font-medium">#{shift.id.slice(0,4)}</div>
+                      
+                      <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                         <div className="text-lg font-black text-google-blue bg-blue-50 px-3 py-1 rounded-xl">
+                           {formatTimeRange(shift.start_time, shift.end_time)}
+                         </div>
+                         <div className="text-[10px] text-gray-400 font-bold tracking-tighter uppercase">ID: {shift.id.slice(0,6)}</div>
                       </div>
                     </div>
 
-                    <div className="mt-4">
+                    <div className="mt-6">
                       {!attendanceLog && today && (
                         <M3Button 
                           onClick={() => handleCheckIn(shift)}
                           loading={isProcessing}
-                          className="w-full py-5 text-lg shadow-lg shadow-blue-100 bg-gradient-to-r from-google-blue to-blue-600 hover:to-blue-700"
-                          icon={<MapPin className="w-5 h-5" />}
+                          className="w-full py-5 text-lg font-black rounded-[20px] shadow-xl shadow-blue-200 bg-gradient-to-r from-google-blue to-blue-600 hover:to-blue-700"
+                          icon={<Navigation className="w-5 h-5" />}
                         >
-                          📍 CHECK IN
+                          CHECK IN NOW
                         </M3Button>
                       )}
 
@@ -261,27 +324,32 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         <M3Button 
                           onClick={() => handleCheckOut(attendanceLog.id)}
                           loading={isProcessing}
-                          className="w-full bg-gradient-to-r from-google-red to-google-red-dark hover:to-red-700 py-5 text-lg shadow-lg shadow-red-100"
+                          className="w-full py-5 text-lg font-black rounded-[20px] shadow-xl shadow-red-200 bg-gradient-to-r from-google-red to-red-600 hover:to-red-700"
                           icon={<CheckCircle className="w-5 h-5" />}
                         >
-                          🏁 CHECK OUT NOW
+                          FINISH SHIFT
                         </M3Button>
                       )}
 
                       {isCompleted && (
-                        <div className="w-full bg-green-50 text-google-green-dark py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 border border-google-green/20">
-                          <CheckCircle className="w-5 h-5" />
-                          ✅ Shift Completed
+                        <div className="w-full bg-white/60 text-google-green-dark py-4 rounded-[20px] font-black text-sm flex items-center justify-center gap-3 border border-google-green/10 shadow-sm">
+                          <div className="w-8 h-8 rounded-full bg-google-green flex items-center justify-center text-white">
+                            <CheckCircle className="w-5 h-5" />
+                          </div>
+                          SHIFT COMPLETED
                         </div>
                       )}
 
                       {!today && !attendanceLog && (
-                        <div className="text-center py-2 text-xs text-gray-400 font-medium italic">
-                          งานจะเริ่มในวันที่ {formatDate(shift.start_time)}
+                        <div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100 flex items-center justify-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-300" />
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">
+                            Starts on {formatDate(shift.start_time)}
+                          </span>
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })
             )}

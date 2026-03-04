@@ -91,21 +91,21 @@ export const getShifts = async (): Promise<Shift[]> => {
   const { data, error } = await supabase
     .from('shifts')
     .select('*, user:users(*)')
-    .neq('status', ShiftStatus.CANCELLED)
     .order('start_time', { ascending: true });
 
   if (error) {
     console.error('Error fetching shifts:', error);
     return [];
   }
-  return data || [];
+  // Include null status (Draft) and anything not cancelled
+  return (data || []).filter(s => s.status !== ShiftStatus.CANCELLED);
 };
 
 // Improved createShift to handle multiple slots in one call
 export const createShift = async (shiftData: Partial<Shift>, slots: number = 1): Promise<{ success: boolean; error?: string }> => {
   const shiftsToInsert = Array.from({ length: Math.max(1, slots) }).map(() => ({
     ...shiftData,
-    status: shiftData.user_id ? ShiftStatus.SCHEDULED : ShiftStatus.GHOSTED,
+    status: null, // Set to null as requested for initial creation
     current_pay_rate: shiftData.current_pay_rate || shiftData.base_pay_rate,
     is_notified: false,
   }));
@@ -119,6 +119,53 @@ export const createShift = async (shiftData: Partial<Shift>, slots: number = 1):
     return { success: false, error: error.message };
   }
   return { success: true };
+};
+
+export const confirmShifts = async (shiftIds: string[]): Promise<{ success: boolean; error?: string }> => {
+  const { error } = await supabase
+    .from('shifts')
+    .update({ status: ShiftStatus.CREATED })
+    .in('id', shiftIds)
+    .is('status', null);
+
+  if (error) {
+    console.error('Error confirming shifts:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+};
+
+export const broadcastShift = async (shiftId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // 1. Invoke Edge Function to send LINE Flex Message
+    const { error: invokeError } = await supabase.functions.invoke('line-bot', {
+      body: { 
+        action: 'notify-ghosts',
+        shift_id: shiftId 
+      }
+    });
+
+    if (invokeError) {
+      console.warn('Edge function invocation warning:', invokeError);
+      // We might still want to proceed with status update even if notification fails
+    }
+
+    // 2. Change status to BIDDING
+    const { error: biddingError } = await supabase
+      .from('shifts')
+      .update({ 
+        status: ShiftStatus.BIDDING,
+        is_notified: true 
+      })
+      .eq('id', shiftId);
+
+    if (biddingError) throw biddingError;
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error broadcasting shift:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 export const updateShift = async (shiftId: string, shiftData: Partial<Shift>): Promise<{ success: boolean; error?: string }> => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Shift, ShiftStatus } from '../types';
 import { M3Button } from './ui/M3Button';
 import { motion } from 'motion/react';
-import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil, Megaphone } from 'lucide-react';
+import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil, Megaphone, Ban, Skull } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from './Badge';
 
@@ -36,12 +36,16 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
   const isFilledStyle = isGhosted || hasStaff;
 
   const canCancel = isManager && (
+    shift.status === null ||
+    shift.status === ShiftStatus.CREATED ||
     shift.status === ShiftStatus.SCHEDULED || 
     shift.status === ShiftStatus.BIDDING || 
     shift.status === ShiftStatus.GHOSTED
   );
   
   const canEdit = isManager && (
+    shift.status === null ||
+    shift.status === ShiftStatus.CREATED ||
     shift.status === ShiftStatus.BIDDING || 
     shift.status === ShiftStatus.SCHEDULED
   );
@@ -87,14 +91,30 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
           
           {/* Quick Actions for Manager */}
           <div className="flex items-center bg-white/50 backdrop-blur-sm rounded-full px-1 py-0.5 border border-gray-100">
-            {isManager && (shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.GHOSTED) && onBroadcast && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
-                className="p-1.5 text-google-blue hover:bg-blue-50 rounded-full transition-colors"
-                title="Broadcast"
-              >
-                <Megaphone className="w-4 h-4" />
-              </button>
+            {isManager && onBroadcast && (
+              <>
+                {shift.status === null ? (
+                  <div className="p-1.5 text-gray-300 cursor-not-allowed" title="ยังไม่สามารถประกาศงานได้">
+                    <Ban className="w-4 h-4" />
+                  </div>
+                ) : shift.status === ShiftStatus.CREATED ? (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
+                    className="p-1.5 text-google-red hover:bg-red-50 rounded-full transition-colors"
+                    title="Mark as Ghosted"
+                  >
+                    <Skull className="w-4 h-4" />
+                  </button>
+                ) : (shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.GHOSTED) ? (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
+                    className="p-1.5 text-google-blue hover:bg-blue-50 rounded-full transition-colors"
+                    title="Broadcast"
+                  >
+                    <Megaphone className="w-4 h-4" />
+                  </button>
+                ) : null}
+              </>
             )}
             {canEdit && onEdit && (
               <button 

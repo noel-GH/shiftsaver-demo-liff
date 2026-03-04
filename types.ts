@@ -5,6 +5,7 @@ export enum UserRole {
 }
 
 export enum ShiftStatus {
+  CREATED = 'created',
   SCHEDULED = 'scheduled',
   CHECKED_IN = 'checked_in',
   COMPLETED = 'completed',
@@ -34,7 +35,7 @@ export interface Shift {
   user?: User; // Joined user data
   start_time: string; // ISO string
   end_time: string; // ISO string
-  status: ShiftStatus;
+  status: ShiftStatus | null;
   role_required: string;
   base_pay_rate: number;
   current_pay_rate: number;
