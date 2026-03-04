@@ -92,25 +92,26 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
 
       if (error) {
         console.error("Edge function error:", error);
-        setToast({ message: "การเชื่อมต่อผิดพลาด", type: 'error' });
+        setToast({ message: "การเชื่อมต่อผิดพลาด กรุณาลองใหม่ครับ", type: 'error' });
       } else if (data && data.success) {
-        setToast({ message: data.message, type: 'success' });
-        
-        // Close modal immediately to avoid "blank screen" feel
+        // ✅ รับงานสำเร็จ! 
         setAcceptModalOpen(false);
         setSelectedShiftForAccept(null);
         
-        // Refresh data
-        await fetchShifts();
+        // โชว์ข้อความให้มั่นใจ
+        setToast({ message: "🎉 รับงานสำเร็จ! ระบบกำลังพาคุณไปที่ตารางงาน", type: 'success' });
         
-        // Auto switch tab after a short delay
-        setTimeout(() => {
-          setActiveTab('SCHEDULE');
-        }, 800);
+        // 🚀 จุดสำคัญ: สั่งเปลี่ยน Tab ทันทีเพื่อให้พนักงานเห็นงานในตาราง
+        setActiveTab('SCHEDULE');
+        
+        // ดึงข้อมูลใหม่ในเบื้องหลังเพื่อให้ข้อมูลเป็นปัจจุบัน
+        fetchShifts();
       } else {
-        setToast({ message: data?.message || "ไม่สามารถรับงานได้", type: 'error' });
+        // ❌ กรณีมีคนรับไปก่อนแล้ว หรือเงื่อนไขอื่นไม่ผ่าน
+        const errorMessage = data?.message || "เสียใจด้วยครับ 😢 มีคนรับงานนี้ไปแล้ว";
+        setToast({ message: errorMessage, type: 'error' });
         setAcceptModalOpen(false);
-        await fetchShifts();
+        fetchShifts();
       }
     } catch (e) {
       console.error("Accept error:", e);
