@@ -18,7 +18,7 @@ export const M3AppBar: React.FC<M3AppBarProps> = ({ title, subtitle, leftAction,
     });
   }, [scrollY]);
 
-  const headerHeight = useTransform(scrollY, [0, 100], [120, 80]);
+  const headerHeight = useTransform(scrollY, [0, 100], [80, 60]);
   const titleScale = useTransform(scrollY, [0, 100], [1, 0.9]);
   const titleY = useTransform(scrollY, [0, 100], [0, -5]);
 

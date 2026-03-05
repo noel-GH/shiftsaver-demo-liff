@@ -241,6 +241,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 const isCheckedIn = attendanceLog && attendanceLog.check_in_time && !attendanceLog.check_out_time;
                 const isCompleted = attendanceLog && attendanceLog.check_out_time;
 
+                const cardStyle = isCheckedIn 
+                  ? 'bg-gray-100 border-transparent shadow-none' // --- M3 Filled Card (Active) ---
+                  : today && !isCompleted
+                    ? 'bg-white border border-gray-100 shadow-lg shadow-slate-900/5' // --- M3 Elevated Card (Today's Action) ---
+                    : 'bg-white border-2 border-gray-200 shadow-none'; // --- M3 Outlined Card (Future/Completed) ---
+
                 return (
                   <motion.div 
                     key={shift.id} 
@@ -249,10 +255,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                     animate={{ opacity: 1, y: 0 }}
                     className={`
                       relative p-5 mb-4 rounded-[24px] transition-all duration-300
-                      ${isCompleted || isCheckedIn 
-                        ? 'bg-gray-100 border-transparent shadow-none' 
-                        : 'bg-white border border-gray-100 shadow-lg shadow-slate-900/5'
-                      }
+                      ${cardStyle}
                       active:scale-[0.98]
                     `}
                   >

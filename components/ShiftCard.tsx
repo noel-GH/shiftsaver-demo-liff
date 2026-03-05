@@ -2,7 +2,7 @@ import React from 'react';
 import { Shift, ShiftStatus } from '../types';
 import { M3Button } from './ui/M3Button';
 import { motion } from 'motion/react';
-import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil, Megaphone, Ban, Skull } from 'lucide-react';
+import { Clock, MapPin, AlertCircle, User as UserIcon, Trash2, Pencil, Megaphone, Ban, Skull, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from './Badge';
 
@@ -94,9 +94,13 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
             {isManager && onBroadcast && (
               <>
                 {shift.status === null ? (
-                  <div className="p-1.5 text-gray-300 cursor-not-allowed" title="ยังไม่สามารถประกาศงานได้">
-                    <Ban className="w-4 h-4" />
-                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
+                    className="p-1.5 text-google-green hover:bg-green-50 rounded-full transition-colors"
+                    title="Confirm Draft"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
                 ) : shift.status === ShiftStatus.CREATED ? (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}

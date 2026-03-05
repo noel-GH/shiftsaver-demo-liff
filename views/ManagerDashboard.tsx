@@ -439,14 +439,14 @@ export const ManagerDashboard: React.FC = () => {
         }
       />
 
-      <main className="max-w-4xl mx-auto px-4 pt-48 pb-6 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 pt-24 pb-6 space-y-8">
         
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: 'งานทั้งหมด', value: totalShifts, color: 'bg-google-blue' },
-            { label: 'กำลังทำงาน', value: activeStaff, color: 'bg-google-green-dark' },
-            { label: 'Ghosted', value: ghostCount, color: 'bg-google-red-dark' }
+            { label: 'กำลังทำงาน', value: activeStaff, color: 'bg-google-yellow' },
+            { label: 'งานด่วน', value: ghostCount, color: 'bg-google-red-dark' }
           ].map((stat, idx) => (
             <motion.div 
               key={idx}
@@ -463,8 +463,8 @@ export const ManagerDashboard: React.FC = () => {
           ))}
         </div>
 
-        {/* Action Button: Create Shift */}
-        <div className="space-y-3">
+        {/* Action Buttons: Create & Save Grid */}
+        <div className="grid grid-cols-2 gap-3">
           <M3Button 
              onClick={() => {
                setEditingShift(null);
@@ -482,26 +482,25 @@ export const ManagerDashboard: React.FC = () => {
                });
                setCreateModalOpen(true);
              }}
-             className="w-full py-6 text-lg shadow-xl shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark"
-             icon={<Plus className="w-6 h-6" />}
+             className="w-full py-6 text-sm font-black shadow-lg shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark rounded-[20px]"
+             icon={<Plus className="w-5 h-5" />}
           >
-             สร้างตารางงานใหม่
+             สร้างตารางงาน
           </M3Button>
 
-          {shifts.some(s => s.status === null) && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <M3Button 
-                onClick={handleConfirmAllDrafts}
-                className="w-full py-4 bg-google-green hover:bg-google-green shadow-lg shadow-green-100"
-                icon={<Check className="w-5 h-5" />}
-              >
-                บันทึกตารางงานที่สร้างใหม่
-              </M3Button>
-            </motion.div>
-          )}
+          <M3Button 
+            onClick={handleConfirmAllDrafts}
+            disabled={!shifts.some(s => s.status === null)}
+            variant={shifts.some(s => s.status === null) ? 'filled' : 'outlined'}
+            className={`w-full py-6 text-sm font-black rounded-[20px] transition-all duration-300 ${
+              shifts.some(s => s.status === null)
+                ? 'bg-google-green-dark hover:bg-green-800 shadow-lg shadow-green-100 border-transparent text-white' 
+                : 'border-gray-200 text-gray-300 bg-transparent opacity-50'
+            }`}
+            icon={<Check className="w-5 h-5" />}
+          >
+            บันทึกทั้งหมด
+          </M3Button>
         </div>
 
         <div>

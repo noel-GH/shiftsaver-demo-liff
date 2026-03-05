@@ -36,12 +36,12 @@ export const M3NavigationBar: React.FC<M3NavigationBarProps> = ({ items, activeI
                 animate={{ 
                   scale: isActive ? 1.1 : 1,
                 }}
-                className={`relative z-10 ${isActive ? 'text-google-blue' : 'text-gray-400 group-hover:text-gray-600'}`}
+                className={`relative z-10 ${isActive ? 'text-google-navy-dark' : 'text-gray-400 group-hover:text-gray-600'}`}
               >
                 {item.icon}
               </motion.div>
             </div>
-            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-google-blue' : 'text-gray-400'}`}>
+            <span className={`text-[10px] font-bold tracking-wider uppercase transition-colors ${isActive ? 'text-google-navy-dark' : 'text-gray-400'}`}>
               {item.label}
             </span>
           </button>
