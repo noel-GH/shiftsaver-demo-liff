@@ -485,7 +485,7 @@ export const ManagerDashboard: React.FC = () => {
              className="w-full py-4 text-xs font-black shadow-lg shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark rounded-2xl"
              icon={<Plus className="w-4 h-4" />}
           >
-             สร้างตารางงาน
+             สร้างกะงาน
           </M3Button>
 
           <M3Button 
