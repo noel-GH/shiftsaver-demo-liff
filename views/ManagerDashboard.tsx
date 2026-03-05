@@ -455,7 +455,7 @@ export const ManagerDashboard: React.FC = () => {
               transition={{ delay: idx * 0.1, type: "spring" }}
               className={`${stat.color} p-4 rounded-[24px] shadow-lg flex flex-col items-center justify-center text-center text-white border border-white/10 transition-all hover:shadow-xl`}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest mb-1 text-white/90">
+              <span className="text-[10px] font-bold uppercase tracking-widest mb-1 text-white">
                 {stat.label}
               </span>
               <span className="text-3xl font-black text-white">{stat.value}</span>
@@ -482,8 +482,8 @@ export const ManagerDashboard: React.FC = () => {
                });
                setCreateModalOpen(true);
              }}
-             className="w-full py-6 text-sm font-black shadow-lg shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark rounded-[20px]"
-             icon={<Plus className="w-5 h-5" />}
+             className="w-full py-4 text-xs font-black shadow-lg shadow-slate-500/10 bg-google-navy-dark hover:bg-google-navy-dark rounded-2xl"
+             icon={<Plus className="w-4 h-4" />}
           >
              สร้างตารางงาน
           </M3Button>
@@ -492,12 +492,12 @@ export const ManagerDashboard: React.FC = () => {
             onClick={handleConfirmAllDrafts}
             disabled={!shifts.some(s => s.status === null)}
             variant={shifts.some(s => s.status === null) ? 'filled' : 'outlined'}
-            className={`w-full py-6 text-sm font-black rounded-[20px] transition-all duration-300 ${
+            className={`w-full py-4 text-xs font-black rounded-2xl transition-all duration-300 ${
               shifts.some(s => s.status === null)
                 ? 'bg-google-green-dark hover:bg-green-800 shadow-lg shadow-green-100 border-transparent text-white' 
                 : 'border-gray-200 text-gray-300 bg-transparent opacity-50'
             }`}
-            icon={<Check className="w-5 h-5" />}
+            icon={<Check className="w-4 h-4" />}
           >
             บันทึกทั้งหมด
           </M3Button>
