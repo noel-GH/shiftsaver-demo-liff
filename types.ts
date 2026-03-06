@@ -53,4 +53,6 @@ export interface AttendanceLog {
   gps_location?: string;
   notes?: string;
   verification_status?: 'pending' | 'verified' | 'rejected';
+  total_earnings?: number;
+  actual_hours?: number;
 }

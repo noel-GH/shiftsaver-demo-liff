@@ -29,9 +29,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   
   // Earnings Summary Modal states
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
-  const [summaryData, setSummaryData] = useState<{ earnings: number, hours: number, shiftId: string } | null>(null);
+  const [summaryData, setSummaryData] = useState<{ earnings: number, hours: number, shiftId: string, checkOutTime?: string } | null>(null);
   const [isRequestingVerify, setIsRequestingVerify] = useState(false);
   const [verifySuccess, setVerifySuccess] = useState(false);
+  const [isFetchingSummary, setIsFetchingSummary] = useState(false);
 
   const fetchShifts = async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -188,6 +189,49 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     );
   };
 
+  // 🚀 ฟังก์ชันดึงข้อมูลสรุปยอดพร้อม Retry Logic
+  const fetchAttendanceSummary = async (shiftId: string, retries = 3, delay = 1500) => {
+    setIsFetchingSummary(true);
+    
+    // ยืนยันตัวตนผ่าน Supabase Auth ตามกฎ RLS (ถ้ามี)
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const userId = authUser?.id || currentUser.id;
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { data, error } = await supabase
+          .from('attendance_logs')
+          .select('total_earnings, actual_hours, check_out_time')
+          .eq('shift_id', shiftId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        // ถ้ามีข้อมูล check_out_time แล้ว แสดงว่าระบบคำนวณเสร็จแล้ว
+        if (data && data.check_out_time) {
+          setSummaryData({
+            earnings: data.total_earnings || 0,
+            hours: data.actual_hours || 0,
+            shiftId: shiftId,
+            checkOutTime: data.check_out_time
+          });
+          setIsFetchingSummary(false);
+          return;
+        }
+      } catch (err) {
+        console.error(`Attempt ${i + 1} failed:`, err);
+      }
+      
+      // รอสักครู่ก่อนลองใหม่ (Exponential backoff หรือคงที่)
+      if (i < retries - 1) await new Promise(res => setTimeout(res, delay));
+    }
+
+    // ถ้าลองครบแล้วยังไม่ได้ข้อมูล ให้ใช้ค่า Default หรือแจ้งเตือน
+    setIsFetchingSummary(false);
+    setToast({ message: "ระบบกำลังประมวลผลยอดเงิน กรุณารอสักครู่ครับ", type: 'info' });
+  };
+
   // 🚀 ฟังก์ชัน Check-out ของจริง (ยิงไปหา Edge Function)
   const handleCheckOut = async (shift: Shift) => {
     setProcessingId(shift.id); 
@@ -208,16 +252,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         if (data && data.success) {
           setToast({ message: data.message || "เช็คเอาท์สำเร็จ!", type: 'success' });
           
-          // 💰 Open Summary Modal if data contains earnings
-          if (data.earnings !== undefined) {
-            setSummaryData({
-              earnings: data.earnings,
-              hours: data.hours || 0,
-              shiftId: shift.id
-            });
-            setVerifySuccess(false);
-            setSummaryModalOpen(true);
-          }
+          // 💰 เริ่มดึงข้อมูลสรุปยอด (Summary) ทันทีพร้อม Retry
+          setSummaryModalOpen(true);
+          setVerifySuccess(false);
+          fetchAttendanceSummary(shift.id);
           
           await fetchShifts();
         } else {
@@ -468,12 +506,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       {isCompleted && !isPendingApproval && !isVerified && (
                         <M3Button 
                           onClick={() => {
-                            setSummaryData({
-                              earnings: 0, // We don't have it here, but we can fetch or just show modal
-                              hours: 0,
-                              shiftId: shift.id
-                            });
                             setSummaryModalOpen(true);
+                            fetchAttendanceSummary(shift.id);
                           }}
                           className="w-full py-4 text-sm font-black rounded-[20px] bg-google-green text-white"
                           icon={<DollarSign className="w-5 h-5" />}
@@ -668,11 +702,16 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
       {/* Earnings Summary Modal */}
       <Modal
         isOpen={summaryModalOpen}
-        onClose={() => !isRequestingVerify && setSummaryModalOpen(false)}
+        onClose={() => !isRequestingVerify && !isFetchingSummary && setSummaryModalOpen(false)}
         title={verifySuccess ? "ส่งคำขอเรียบร้อย" : "สรุปยอดรายได้"}
       >
         <div className="space-y-6 py-2">
-          {verifySuccess ? (
+          {isFetchingSummary ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <M3LoadingIndicator />
+              <p className="text-gray-400 text-sm font-bold animate-pulse">กำลังคำนวณยอดเงิน...</p>
+            </div>
+          ) : verifySuccess ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
               <div className="w-20 h-20 bg-google-green rounded-full flex items-center justify-center shadow-lg shadow-green-100">
                 <Check className="w-10 h-10 text-white stroke-[3px]" />
@@ -695,11 +734,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200/60">
                   <div className="text-center">
                     <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">ชั่วโมงทำงาน</p>
-                    <p className="text-lg font-black text-gray-800">{summaryData?.hours.toFixed(1)} <span className="text-xs font-bold text-gray-400">ชม.</span></p>
+                    <p className="text-lg font-black text-gray-800">{summaryData?.hours?.toFixed(1) || '0.0'} <span className="text-xs font-bold text-gray-400">ชม.</span></p>
                   </div>
                   <div className="text-center border-l border-gray-200/60">
-                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">สถานะ</p>
-                    <p className="text-sm font-black text-google-green">บันทึกเวลาแล้ว</p>
+                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">เลิกงานเมื่อ</p>
+                    <p className="text-sm font-black text-google-green">
+                      {summaryData?.checkOutTime ? new Date(summaryData.checkOutTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </p>
                   </div>
                 </div>
               </div>
