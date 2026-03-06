@@ -23,7 +23,7 @@ const MOCK_MANAGER: User = {
 
 const MOCK_STAFF: User = {
   id: 'a8d91f33',
-  line_user_id: 'U5e',
+  line_user_id: 'U5e53',
   display_name: 'Dev Staff',
   role: UserRole.STAFF,
   reliability_score: 95,
