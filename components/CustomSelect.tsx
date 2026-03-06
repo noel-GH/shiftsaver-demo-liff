@@ -8,7 +8,7 @@ interface Option {
 }
 
 interface CustomSelectProps {
-  label: string;
+  label?: string;
   options: string[] | Option[];
   value: string;
   onChange: (value: string) => void;
@@ -36,15 +36,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ label, options, valu
   }, []);
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 transition-all outline-none focus:ring-2 focus:ring-google-navy-dark focus:border-google-navy-dark ${isOpen ? 'ring-2 ring-google-navy-dark border-google-navy-dark' : ''}`}
+        className={`w-full text-left bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 transition-all outline-none focus:ring-2 focus:ring-google-navy-dark focus:border-google-navy-dark ${isOpen ? 'ring-2 ring-google-navy-dark border-google-navy-dark' : ''} ${className}`}
       >
-        <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">
-          {label}
-        </span>
+        {label && (
+          <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">
+            {label}
+          </span>
+        )}
         <div className="flex justify-between items-center gap-2">
           <span className="text-sm font-bold text-gray-900 leading-tight break-words flex-1">
             {selectedOption?.label}

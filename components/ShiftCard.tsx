@@ -37,7 +37,6 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
 
   const canCancel = isManager && (
     shift.status === null ||
-    shift.status === ShiftStatus.CREATED ||
     shift.status === ShiftStatus.SCHEDULED || 
     shift.status === ShiftStatus.BIDDING || 
     shift.status === ShiftStatus.GHOSTED
@@ -45,7 +44,6 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
   
   const canEdit = isManager && (
     shift.status === null ||
-    shift.status === ShiftStatus.CREATED ||
     shift.status === ShiftStatus.BIDDING || 
     shift.status === ShiftStatus.SCHEDULED
   );
@@ -101,18 +99,10 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
                   >
                     <Check className="w-4 h-4" />
                   </button>
-                ) : shift.status === ShiftStatus.CREATED ? (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
-                    className="p-1.5 text-google-red hover:bg-red-50 rounded-full transition-colors"
-                    title="Mark as Ghosted"
-                  >
-                    <Skull className="w-4 h-4" />
-                  </button>
                 ) : (shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.GHOSTED) ? (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onBroadcast(shift); }}
-                    className="p-1.5 text-google-blue hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-1.5 text-google-red hover:bg-red-50 rounded-full transition-colors"
                     title="Broadcast"
                   >
                     <Megaphone className="w-4 h-4" />
@@ -157,7 +147,7 @@ export const ShiftCard: React.FC<ShiftCardProps> = ({
           <span className={`text-2xl font-black ${isSurge ? 'text-google-red' : 'text-google-navy-dark'}`}>
             ฿{shift.current_pay_rate?.toLocaleString()}
           </span>
-          <span className="text-[10px] text-gray-400 ml-1 font-bold uppercase">/hr</span>
+          <span className="text-[10px] text-gray-400 ml-1 font-bold uppercase">/ชม.</span>
         </div>
       </div>
 

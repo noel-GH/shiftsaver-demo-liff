@@ -22,8 +22,8 @@ const MOCK_MANAGER: User = {
 };
 
 const MOCK_STAFF: User = {
-  id: '62535dba-904e-4727-bfda-9a20310e8356',
-  line_user_id: 'U22222',
+  id: 'a8d91f33-3a5c-438e-',
+  line_user_id: 'U5e',
   display_name: 'Dev Staff',
   role: UserRole.STAFF,
   reliability_score: 95,
@@ -236,12 +236,12 @@ const AppContent: React.FC = () => {
         <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
            <div className="relative flex gap-1">
               <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              <div className="w-3 h-3 bg-google-navy-dark rounded-full animate-bounce" style={{ animationDelay: '450ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className="w-3 h-3 bg-google-navy-dark/40 rounded-full animate-bounce" style={{ animationDelay: '450ms' }}></div>
            </div>
            <div className="text-center space-y-1">
-              <h2 className="text-lg font-black tracking-tight text-google-blue">ShiftSaver</h2>
+              <h2 className="text-lg font-black tracking-tight text-google-navy-dark">ShiftSaver</h2>
               <p className="text-gray-400 text-xs font-medium">Verifying Identity...</p>
            </div>
         </div>

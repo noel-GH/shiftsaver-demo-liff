@@ -11,7 +11,7 @@ export const Badge: React.FC<BadgeProps> = ({ status }) => {
     [ShiftStatus.SCHEDULED]: 'bg-google-blue/10 text-google-blue border-google-blue/20',
     [ShiftStatus.CHECKED_IN]: 'bg-google-green/10 text-google-green-dark border-google-green/20',
     [ShiftStatus.COMPLETED]: 'bg-gray-100 text-gray-800 border-gray-200',
-    [ShiftStatus.GHOSTED]: 'bg-google-red/10 text-google-red-dark border-google-red/20 animate-pulse',
+    [ShiftStatus.GHOSTED]: 'bg-google-red/10 text-black border-google-red/20 animate-pulse',
     [ShiftStatus.BIDDING]: 'bg-google-yellow/10 text-google-yellow-dark border-google-yellow/20',
     [ShiftStatus.FILLED]: 'bg-purple-100 text-purple-800 border-purple-200',
     [ShiftStatus.CANCELLED]: 'bg-gray-100 text-gray-500 border-gray-200',

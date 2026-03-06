@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 
 export const M3LoadingIndicator: React.FC<{ size?: number; color?: string }> = ({ 
   size = 40, 
-  color = "stroke-google-blue" 
+  color = "stroke-current" 
 }) => {
   return (
     <div className="flex items-center justify-center p-4">

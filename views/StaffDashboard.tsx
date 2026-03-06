@@ -25,7 +25,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   // Modal states for acceptance
   const [acceptModalOpen, setAcceptModalOpen] = useState(false);
   const [selectedShiftForAccept, setSelectedShiftForAccept] = useState<Shift | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchShifts = async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -80,7 +80,33 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   const handleConfirmAccept = async () => {
     if (!selectedShiftForAccept) return;
     
-    setIsProcessing(true);
+    // 🛡️ Validation: Check for overlapping or near-overlapping shifts (within 1 hour)
+    const ONE_HOUR = 60 * 60 * 1000;
+    const newStart = new Date(selectedShiftForAccept.start_time).getTime();
+    const newEnd = new Date(selectedShiftForAccept.end_time).getTime();
+
+    const conflict = myAcceptedShifts.find(existingShift => {
+      // Skip if it's the same shift (shouldn't happen but good to be safe)
+      if (existingShift.id === selectedShiftForAccept.id) return false;
+      
+      const existingStart = new Date(existingShift.start_time).getTime();
+      const existingEnd = new Date(existingShift.end_time).getTime();
+      
+      // Conflict if: newStart < existingEnd + 1h AND existingStart < newEnd + 1h
+      // This formula ensures at least 1 hour gap between any two shifts.
+      return (newStart < existingEnd + ONE_HOUR) && (existingStart < newEnd + ONE_HOUR);
+    });
+
+    if (conflict) {
+      setToast({ 
+        message: "ไม่สามารถรับงานได้เนื่องจากรับงานทับซ้อนน้อยกว่า 1 ชั่วโมง", 
+        type: 'error' 
+      });
+      setAcceptModalOpen(false);
+      return;
+    }
+
+    setProcessingId('accepting');
     
     try {
       const { data, error } = await supabase.functions.invoke('handle-accept-shift', {
@@ -117,7 +143,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
       console.error("Accept error:", e);
       setToast({ message: "ระบบขัดข้อง", type: 'error' });
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -127,7 +153,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
       return;
     }
 
-    setIsProcessing(true);
+    setProcessingId(shift.id);
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -140,19 +166,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         } else {
           setToast({ message: result.error || "เช็คอินไม่สำเร็จ", type: 'error' });
         }
-        setIsProcessing(false);
+        setProcessingId(null);
       },
       (error) => {
         console.error("Geolocation error:", error);
         setToast({ message: "ไม่สามารถเข้าถึงตำแหน่ง GPS ได้ กรุณาอนุญาตสิทธิ์", type: 'error' });
-        setIsProcessing(false);
+        setProcessingId(null);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
   const handleCheckOut = async (logId: string) => {
-    setIsProcessing(true);
+    setProcessingId(logId);
     try {
       const result = await checkOut(logId);
       if (result.success) {
@@ -164,7 +190,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     } catch (e) {
       setToast({ message: "เกิดข้อผิดพลาด", type: 'error' });
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -305,7 +331,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       </div>
                       
                       <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                         <div className="text-lg font-black text-google-blue bg-blue-50 px-3 py-1 rounded-xl">
+                         <div className="text-lg font-black text-google-navy-black bg-google-navy-black-50 px-3 py-1 rounded-xl">
                            {formatTimeRange(shift.start_time, shift.end_time)}
                          </div>
                          <div className="text-[10px] text-gray-400 font-bold tracking-tighter uppercase">ID: {shift.id.slice(0,6)}</div>
@@ -316,8 +342,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       {!attendanceLog && today && (
                         <M3Button 
                           onClick={() => handleCheckIn(shift)}
-                          loading={isProcessing}
-                          className="w-full py-5 text-lg font-black rounded-[20px] shadow-xl shadow-blue-200 bg-gradient-to-r from-google-blue to-blue-600 hover:to-blue-700"
+                          loading={processingId === shift.id}
+                          className="w-full py-5 text-lg font-black rounded-[20px] shadow-md shadow-blue-100 bg-gradient-to-r from-google-blue to-blue-600 hover:to-blue-700"
                           icon={<Navigation className="w-5 h-5" />}
                         >
                           CHECK IN NOW
@@ -327,9 +353,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       {isCheckedIn && (
                         <M3Button 
                           onClick={() => handleCheckOut(attendanceLog.id)}
-                          loading={isProcessing}
-                          className="w-full py-5 text-lg font-black rounded-[20px] shadow-xl shadow-red-200 bg-gradient-to-r from-google-red to-red-600 hover:to-red-700"
-                          icon={<CheckCircle className="w-5 h-5" />}
+                          loading={processingId === attendanceLog.id}
+                          className="w-full py-5 text-lg font-black rounded-[20px] 
+                                    bg-white border-2 border-[#FBBC05]
+                                    !text-[#947600] 
+                                    shadow-[0_8px_20px_-6px_rgba(251,188,5,0.25)] 
+                                    hover:bg-yellow-50"
+                          icon={<CheckCircle className="w-5 h-5 !text-[#947600]" />}
                         >
                           FINISH SHIFT
                         </M3Button>
@@ -406,7 +436,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                            <div className="flex-1 min-w-0">
                               <h3 className="text-xl font-bold text-gray-900 leading-tight break-words">{shift.role_required}</h3>
                               <div className="text-xs text-gray-500 flex items-center gap-1 mt-1 font-medium">
-                                 <Clock className="w-3 h-3 shrink-0 text-google-blue" />
+                                 <Clock className="w-3 h-3 shrink-0 text-google-navy-dark" />
                                  {formatTimeRange(shift.start_time, shift.end_time)}
                               </div>
                            </div>
@@ -458,17 +488,17 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
           <div className="flex w-full gap-3">
             <button 
               onClick={() => setAcceptModalOpen(false)}
-              disabled={isProcessing}
+              disabled={processingId === 'accepting'}
               className="flex-1 px-4 py-3 rounded-2xl text-gray-700 font-bold hover:bg-gray-100 disabled:opacity-50 text-sm"
             >
               ยกเลิก
             </button>
             <button 
               onClick={handleConfirmAccept}
-              disabled={isProcessing}
+              disabled={processingId === 'accepting'}
               className="flex-1 px-4 py-3 rounded-2xl bg-google-blue text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
             >
-              {isProcessing ? (
+              {processingId === 'accepting' ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : null}
               ตกลงรับงาน

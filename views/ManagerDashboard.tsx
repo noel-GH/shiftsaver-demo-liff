@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
 import { CustomSelect } from '../components/CustomSelect';
-import { LayoutDashboard, AlertTriangle, Activity, CalendarSync, CalendarClock, Database, CheckCircle, Skull, Megaphone, Plus, Clock, MapPin, Briefcase, Wallet, Users, Info, Trash2, Layers, ChevronRight, Pencil, Check } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Activity, CalendarSync, CalendarClock, Database, CheckCircle, Skull, Megaphone, Plus, Minus, Clock, MapPin, Briefcase, Wallet, Users, Info, Trash2, Layers, ChevronRight, Pencil, Check } from 'lucide-react';
 import { format, differenceInHours, isBefore, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, addDays, startOfToday } from 'date-fns';
 import { ShiftCard } from '../components/ShiftCard';
 
@@ -148,52 +148,55 @@ export const ManagerDashboard: React.FC = () => {
   }
 
   const handleBroadcast = async () => {
+    const pendingShifts = shifts.filter(s => s.status === ShiftStatus.GHOSTED);
+    if (pendingShifts.length === 0) {
+      setToast({ message: "ไม่มีงานด่วนที่ต้องประกาศ", type: 'warning' });
+      return;
+    }
+
     setBroadcasting(true);
     try {
-      const result = await notifyGhostsCron();
-      if (result.success && result.notified_count > 0) {
-        setToast({ message: "ส่งแจ้งเตือน LINE เรียบร้อยแล้ว!", type: 'success' });
-        await fetchInitialData();
-      } else if (result.success) {
-        setToast({ message: "ไม่มีงานด่วนที่ต้องแจ้งเตือน", type: 'warning' });
-      } else {
-        alert("Broadcast failed: " + result.error);
+      let successCount = 0;
+      for (const shift of pendingShifts) {
+        const res = await broadcastShift(shift.id);
+        if (res.success) successCount++;
       }
-    } catch (e) {
+
+      if (successCount > 0) {
+        setToast({ message: `ประกาศงานด่วนสำเร็จ ${successCount} รายการ!`, type: 'success' });
+        await fetchInitialData();
+      } else {
+        setToast({ message: "ไม่สามารถประกาศงานได้", type: 'error' });
+      }
+    } catch (e: any) {
       console.error(e);
-      alert("Error executing broadcast.");
+      alert("Error executing broadcast: " + (e.message || "Unknown error"));
     } finally {
       setBroadcasting(false);
     }
   };
 
   const handleSingleBroadcast = async (shift: Shift) => {
-    if (shift.status === null) {
-      setToast({ message: "โปรดบันทึกตารางงานก่อนประกาศ", type: 'warning' });
-      return;
-    }
-
     setBroadcasting(true);
     try {
-      let result;
-      if (shift.status === ShiftStatus.CREATED) {
-        // Step 1: Mark as Ghosted (Internal state, not yet bidding)
+      if (shift.status === null) {
+        // Save as Ghosted directly
         await markShiftAsGhost(shift.id);
-        setToast({ message: `เปลี่ยนสถานะ ${shift.role_required} เป็น Ghosted แล้ว`, type: 'success' });
+        setToast({ message: `บันทึกงาน ${shift.role_required} เป็นงานด่วนแล้ว`, type: 'success' });
         await fetchInitialData();
       } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
-        // Step 2: Broadcast to LINE and set to BIDDING
-        result = await broadcastShift(shift.id);
+        // Broadcast to LINE and set to BIDDING
+        const result = await broadcastShift(shift.id);
         if (result.success) {
           setToast({ message: `ประกาศงาน ${shift.role_required} เรียบร้อย!`, type: 'success' });
           await fetchInitialData();
         } else {
-          alert("Broadcast failed: " + result.error);
+          alert("Broadcast failed: " + (result.error || "Unknown error"));
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Error executing action.");
+      alert("Error executing action: " + (e.message || "Unknown error"));
     } finally {
       setBroadcasting(false);
     }
@@ -207,12 +210,12 @@ export const ManagerDashboard: React.FC = () => {
     try {
       const result = await confirmShifts(draftIds);
       if (result.success) {
-        setToast({ message: "บันทึกตารางงานทั้งหมดเรียบร้อย!", type: 'success' });
+        setToast({ message: "บันทึกตารางงานทั้งหมดเป็นงานด่วนเรียบร้อย!", type: 'success' });
         await fetchInitialData();
       } else {
-        alert("Error confirming shifts: " + result.error);
+        alert("Error confirming shifts: " + (result.error || "Unknown error"));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     } finally {
       setLoading(false);
@@ -406,10 +409,10 @@ export const ManagerDashboard: React.FC = () => {
               // เพิ่ม Logic สำหรับขอบ (Border) ให้กะพริบด้วย animate-pulse
               className={`px-3 py-1.5 h-9 text-xs min-w-[64px] bg-white border transition-all duration-200
                 ${pendingNotificationCount > 0 
-                  ? 'border-google-red animate-pulse hover:bg-red-50 active:bg-red-100' 
-                  : 'border-gray-100 hover:bg-gray-50 active:bg-gray-100'
-                }
-              `}
+                      ? 'border-google-red animate-pulse hover:bg-red-50 active:bg-red-100 text-google-red' // เพิ่ม text-google-red ตรงนี้
+                      : 'border-gray-100 hover:bg-gray-50 active:bg-gray-100 text-gray-500'
+                    }
+                  `}
               icon={
                 <Megaphone 
                   className={`w-4 h-4 ${
@@ -490,6 +493,7 @@ export const ManagerDashboard: React.FC = () => {
 
           <M3Button 
             onClick={handleConfirmAllDrafts}
+            loading={loading}
             disabled={!shifts.some(s => s.status === null)}
             variant={shifts.some(s => s.status === null) ? 'filled' : 'outlined'}
             className={`w-full py-4 text-xs font-black rounded-2xl transition-all duration-300 ${
@@ -511,7 +515,7 @@ export const ManagerDashboard: React.FC = () => {
 
           {loading && shifts.length === 0 ? (
              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <M3LoadingIndicator />
+                <M3LoadingIndicator color="stroke-google-navy-dark" />
                 <span className="text-gray-400 text-sm font-bold uppercase tracking-widest">กำลังอัปเดตข้อมูล...</span>
              </div>
           ) : (
@@ -529,11 +533,10 @@ export const ManagerDashboard: React.FC = () => {
                        action = handleSimulateGhost;
                        label = "บันทึก No-Show";
                        color = "bg-gray-800 hover:bg-gray-900";
-                   } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING || shift.status === ShiftStatus.CREATED) {
+                   } else if (shift.status === ShiftStatus.GHOSTED || shift.status === ShiftStatus.BIDDING) {
                        action = handleFindReplacementClick;
-                       label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : 
-                               shift.status === ShiftStatus.CREATED ? "ประกาศหาพนักงาน" : "ประกาศหาพนักงานด่วน";
-                       color = shift.status === ShiftStatus.CREATED ? "bg-google-blue hover:bg-blue-700" : "bg-google-red-dark hover:bg-google-red-dark shadow-lg shadow-red-100";
+                       label = shift.status === ShiftStatus.BIDDING ? "จัดการงานว่าง" : "ประกาศหาพนักงานด่วน";
+                       color = "bg-google-red-dark hover:bg-google-red-dark shadow-lg shadow-red-100";
                    }
 
                    return (
@@ -708,28 +711,71 @@ export const ManagerDashboard: React.FC = () => {
           </div>
 
           {/* Additional Settings */}
-          <div className="grid grid-cols-2 gap-4 px-2">
-            <CustomSelect 
-              label="ตำแหน่งงาน"
-              value={newShift.role_required}
-              onChange={val => setNewShift({...newShift, role_required: val})}
-              options={['WH Office', 'IT Staff', 'MHE Officer', 'Delivery', 'Maintenance']}
-              className="rounded-2xl bg-gray-50 border-gray-200"
-            />
+          <div className="grid grid-cols-3 gap-3 px-2">
             
-            <div className="relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-google-blue focus-within:border-google-blue">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">จำนวนพนักงาน</label>
-              <input 
-                type="number"
-                min="1"
-                max="50"
-                value={newShift.num_slots}
-                onChange={e => setNewShift({...newShift, num_slots: parseInt(e.target.value) || 1})}
-                className="block w-full bg-transparent outline-none text-sm font-bold text-gray-900"
+            {/* 1. ตำแหน่งงาน: กินพื้นที่ 2 ส่วน (66%) */}
+            <div className="col-span-2 space-y-2">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight ml-1">
+                ตำแหน่งงาน
+              </label>
+              <CustomSelect 
+                value={newShift.role_required}
+                onChange={val => setNewShift({...newShift, role_required: val})}
+                options={['WH Office', 'IT Staff', 'MHE Officer', 'Delivery', 'Maintenance']}
+                className="rounded-2xl bg-slate-50 border-gray-200 text-sm font-bold h-[48px]"
               />
             </div>
 
-            <div className="col-span-2 relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-google-blue focus-within:border-google-blue">
+            {/* 2. จำนวนพนักงาน (Steppers UI): กินพื้นที่ 1 ส่วน (33%) */}
+            <div className="col-span-1 space-y-2">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight ml-1">
+                จำนวนคน
+              </label>
+              <div className="flex items-center justify-center bg-transparent rounded-2xl p-1 h-[48px] transition-all">
+                
+                <button
+                  type="button"
+                  onClick={() => setNewShift(prev => ({
+                    ...prev, 
+                    num_slots: Math.max(1, (Number(prev.num_slots) || 1) - 1)
+                  }))}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full active:scale-90 transition-all hover:bg-gray-200"
+                >
+                  <Minus className="w-4 h-4 text-gray-600" />
+                </button>
+
+                <input 
+                  type="number"
+                  inputMode="numeric"
+                  value={newShift.num_slots}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setNewShift({...newShift, num_slots: val === "" ? "" : parseInt(val) || 1});
+                  }}
+                  onBlur={() => {
+                    if (newShift.num_slots === "" || (Number(newShift.num_slots) < 1)) {
+                      setNewShift({...newShift, num_slots: 1});
+                    }
+                  }}
+                  className="w-10 bg-transparent outline-none text-center text-base font-black text-slate-800 appearance-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setNewShift(prev => ({
+                    ...prev, 
+                    num_slots: (Number(prev.num_slots) || 0) + 1
+                  }))}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full active:scale-90 transition-all hover:bg-gray-200"
+                >
+                  <Plus className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 px-2">
+            <div className="col-span-2 relative bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-google-navy-dark focus-within:border-google-navy-dark">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight mb-0.5">ค่าแรงฐาน (บาท/ชั่วโมง)</label>
               <input 
                 type="number"
@@ -881,24 +927,25 @@ export const ManagerDashboard: React.FC = () => {
             >
               ยกเลิก
             </M3Button>
-            {selectedShift?.status === ShiftStatus.CREATED && (
+            {selectedShift?.status === ShiftStatus.GHOSTED && (
                 <M3Button 
                     onClick={() => {
                         handleSingleBroadcast(selectedShift);
                         setModalOpen(false);
                     }}
+                    loading={broadcasting}
                     className="flex-1 bg-google-blue hover:bg-blue-700 shadow-lg shadow-blue-100"
                     icon={<Megaphone className="w-4 h-4" />}
                 >
                     Broadcast ทันที
                 </M3Button>
             )}
-            {(selectedShift?.status === ShiftStatus.GHOSTED || selectedShift?.status === ShiftStatus.BIDDING) && (
+            {selectedShift?.status === ShiftStatus.BIDDING && (
                 <M3Button 
                     onClick={confirmReplacement}
                     className="flex-1 bg-google-red hover:bg-red-700 shadow-lg shadow-red-100"
                 >
-                    ยืนยัน Surge (1.5x)
+                    ยืนยัน (1.5x)
                 </M3Button>
             )}
           </div>
@@ -915,7 +962,7 @@ export const ManagerDashboard: React.FC = () => {
                 </p>
                 </div>
             </div>
-          ) : selectedShift?.status === ShiftStatus.CREATED ? (
+          ) : selectedShift?.status === ShiftStatus.GHOSTED ? (
             <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex items-start gap-3">
                 <Info className="w-5 h-5 text-google-blue shrink-0 mt-0.5" />
                 <div>

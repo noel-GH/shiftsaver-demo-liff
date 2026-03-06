@@ -124,7 +124,7 @@ export const createShift = async (shiftData: Partial<Shift>, slots: number = 1):
 export const confirmShifts = async (shiftIds: string[]): Promise<{ success: boolean; error?: string }> => {
   const { error } = await supabase
     .from('shifts')
-    .update({ status: ShiftStatus.CREATED })
+    .update({ status: ShiftStatus.GHOSTED })
     .in('id', shiftIds)
     .is('status', null);
 
