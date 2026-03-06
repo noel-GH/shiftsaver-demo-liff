@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shift, ShiftStatus, User } from '../types';
-import { getShifts, getStaffShifts, checkIn, checkOut } from '../services/mockData';
+import { getShifts, getStaffShifts } from '../services/mockData'; // 🚨 ลบ checkIn, checkOut ออกแล้ว
 import { supabase } from '../services/supabaseClient';
 import { M3AppBar, M3Toolbar } from '../components/ui/M3AppBar';
 import { M3Button, M3IconButton } from '../components/ui/M3Button';
@@ -9,7 +9,7 @@ import { M3LoadingIndicator } from '../components/ui/M3Indicators';
 import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
-import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, Navigation, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
+import { Briefcase, MapPin, Flame, CalendarCheck, Clock, DollarSign, ChevronRight, Navigation, CheckCircle, XCircle, AlertCircle, Info, Check } from 'lucide-react';
 
 interface StaffDashboardProps {
   currentUser: User;
@@ -26,6 +26,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
   const [acceptModalOpen, setAcceptModalOpen] = useState(false);
   const [selectedShiftForAccept, setSelectedShiftForAccept] = useState<Shift | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  
+  // Earnings Summary Modal states
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [summaryData, setSummaryData] = useState<{ earnings: number, hours: number, shiftId: string } | null>(null);
+  const [isRequestingVerify, setIsRequestingVerify] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState(false);
 
   const fetchShifts = async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -86,14 +92,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     const newEnd = new Date(selectedShiftForAccept.end_time).getTime();
 
     const conflict = myAcceptedShifts.find(existingShift => {
-      // Skip if it's the same shift (shouldn't happen but good to be safe)
       if (existingShift.id === selectedShiftForAccept.id) return false;
-      
       const existingStart = new Date(existingShift.start_time).getTime();
       const existingEnd = new Date(existingShift.end_time).getTime();
-      
-      // Conflict if: newStart < existingEnd + 1h AND existingStart < newEnd + 1h
-      // This formula ensures at least 1 hour gap between any two shifts.
       return (newStart < existingEnd + ONE_HOUR) && (existingStart < newEnd + ONE_HOUR);
     });
 
@@ -120,20 +121,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
         console.error("Edge function error:", error);
         setToast({ message: "การเชื่อมต่อผิดพลาด กรุณาลองใหม่ครับ", type: 'error' });
       } else if (data && data.success) {
-        // ✅ รับงานสำเร็จ! 
         setAcceptModalOpen(false);
         setSelectedShiftForAccept(null);
-        
-        // โชว์ข้อความให้มั่นใจ
         setToast({ message: "🎉 รับงานสำเร็จ! ระบบกำลังพาคุณไปที่ตารางงาน", type: 'success' });
-        
-        // 🚀 จุดสำคัญ: สั่งเปลี่ยน Tab ทันทีเพื่อให้พนักงานเห็นงานในตาราง
         setActiveTab('SCHEDULE');
-        
-        // ดึงข้อมูลใหม่ในเบื้องหลังเพื่อให้ข้อมูลเป็นปัจจุบัน
         fetchShifts();
       } else {
-        // ❌ กรณีมีคนรับไปก่อนแล้ว หรือเงื่อนไขอื่นไม่ผ่าน
         const errorMessage = data?.message || "เสียใจด้วยครับ 😢 มีคนรับงานนี้ไปแล้ว";
         setToast({ message: errorMessage, type: 'error' });
         setAcceptModalOpen(false);
@@ -147,6 +140,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     }
   };
 
+  // 🚀 ฟังก์ชัน Check-in ของจริง (ยิงไปหา Edge Function)
   const handleCheckIn = async (shift: Shift) => {
     if (!navigator.geolocation) {
       setToast({ message: "เบราว์เซอร์ไม่รองรับ GPS", type: 'error' });
@@ -158,15 +152,32 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        const result = await checkIn(shift.id, currentUser.id, latitude, longitude);
+        const gpsString = `${latitude},${longitude}`;
         
-        if (result.success) {
-          setToast({ message: "เช็คอินสำเร็จ!", type: 'success' });
-          await fetchShifts();
-        } else {
-          setToast({ message: result.error || "เช็คอินไม่สำเร็จ", type: 'error' });
+        try {
+          const { data, error } = await supabase.functions.invoke('handle-attendance', {
+            body: {
+              action: 'check_in',
+              shift_id: shift.id,
+              line_user_id: currentUser.line_user_id,
+              gps: gpsString
+            }
+          });
+
+          if (error) throw error;
+
+          if (data && data.success) {
+            setToast({ message: data.message || "เช็คอินสำเร็จ!", type: 'success' });
+            await fetchShifts();
+          } else {
+            setToast({ message: data?.message || "เช็คอินไม่สำเร็จ", type: 'error' });
+          }
+        } catch (e: any) {
+          console.error("Check-in error:", e);
+          setToast({ message: "ระบบขัดข้อง: " + e.message, type: 'error' });
+        } finally {
+          setProcessingId(null);
         }
-        setProcessingId(null);
       },
       (error) => {
         console.error("Geolocation error:", error);
@@ -177,20 +188,93 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
     );
   };
 
-  const handleCheckOut = async (logId: string) => {
-    setProcessingId(logId);
+  // 🚀 ฟังก์ชัน Check-out ของจริง (ยิงไปหา Edge Function)
+  const handleCheckOut = async (shift: Shift) => {
+    setProcessingId(shift.id); 
+
+    const doCheckOut = async (gpsString: string | null = null) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('handle-attendance', {
+          body: {
+            action: 'check_out',
+            shift_id: shift.id,
+            line_user_id: currentUser.line_user_id,
+            gps: gpsString
+          }
+        });
+
+        if (error) throw error;
+
+        if (data && data.success) {
+          setToast({ message: data.message || "เช็คเอาท์สำเร็จ!", type: 'success' });
+          
+          // 💰 Open Summary Modal if data contains earnings
+          if (data.earnings !== undefined) {
+            setSummaryData({
+              earnings: data.earnings,
+              hours: data.hours || 0,
+              shiftId: shift.id
+            });
+            setVerifySuccess(false);
+            setSummaryModalOpen(true);
+          }
+          
+          await fetchShifts();
+        } else {
+          setToast({ message: data?.message || "เช็คเอาท์ไม่สำเร็จ", type: 'error' });
+        }
+      } catch (e: any) {
+        console.error("Check-out error:", e);
+        setToast({ message: "เกิดข้อผิดพลาด: " + e.message, type: 'error' });
+      } finally {
+        setProcessingId(null);
+      }
+    };
+
+    // พยายามหา GPS ก่อนออกงาน
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => doCheckOut(`${position.coords.latitude},${position.coords.longitude}`),
+        () => doCheckOut(null), // ถ้าไม่ให้ GPS ก็ยังยอมให้ออกงานได้
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      doCheckOut(null);
+    }
+  };
+
+  const handleRequestVerify = async () => {
+    if (!summaryData) return;
+    
+    setIsRequestingVerify(true);
     try {
-      const result = await checkOut(logId);
-      if (result.success) {
-        setToast({ message: "เช็คเอาท์สำเร็จ!", type: 'success' });
+      const { data, error } = await supabase.functions.invoke('handle-attendance', {
+        body: {
+          action: 'request_verify',
+          shift_id: summaryData.shiftId,
+          line_user_id: currentUser.line_user_id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data && data.success) {
+        setVerifySuccess(true);
+        // Success state will show checkmark, then we can close after a delay or user click
+        setTimeout(() => {
+          setSummaryModalOpen(false);
+          setSummaryData(null);
+          setVerifySuccess(false);
+        }, 2500);
         await fetchShifts();
       } else {
-        setToast({ message: result.error || "เช็คเอาท์ไม่สำเร็จ", type: 'error' });
+        setToast({ message: data?.message || "ส่งคำขอไม่สำเร็จ", type: 'error' });
       }
-    } catch (e) {
-      setToast({ message: "เกิดข้อผิดพลาด", type: 'error' });
+    } catch (e: any) {
+      console.error("Request verify error:", e);
+      setToast({ message: "เกิดข้อผิดพลาด: " + e.message, type: 'error' });
     } finally {
-      setProcessingId(null);
+      setIsRequestingVerify(false);
     }
   };
 
@@ -266,12 +350,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 const attendanceLog = shift.attendance_logs?.[0];
                 const isCheckedIn = attendanceLog && attendanceLog.check_in_time && !attendanceLog.check_out_time;
                 const isCompleted = attendanceLog && attendanceLog.check_out_time;
+                const isPendingApproval = attendanceLog?.verification_status === 'pending';
+                const isVerified = attendanceLog?.verification_status === 'verified';
 
                 const cardStyle = isCheckedIn 
-                  ? 'bg-gray-100 border-transparent shadow-none' // --- M3 Filled Card (Active) ---
+                  ? 'bg-gray-100 border-transparent shadow-none'
                   : today && !isCompleted
-                    ? 'bg-white border border-gray-100 shadow-lg shadow-slate-900/5' // --- M3 Elevated Card (Today's Action) ---
-                    : 'bg-white border-2 border-gray-200 shadow-none'; // --- M3 Outlined Card (Future/Completed) ---
+                    ? 'bg-white border border-gray-100 shadow-lg shadow-slate-900/5'
+                    : 'bg-white border-2 border-gray-200 shadow-none';
 
                 return (
                   <motion.div 
@@ -285,7 +371,6 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                       active:scale-[0.98]
                     `}
                   >
-                    {/* Status Indicator Strip */}
                     <div className={`absolute left-0 top-6 bottom-6 w-1.5 rounded-r-full ${
                       isCompleted ? 'bg-google-green' : 
                       isCheckedIn ? 'bg-google-yellow' : 
@@ -310,10 +395,24 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                              </span>
                           )}
                           
-                          {isCompleted && (
+                          {isCompleted && !isPendingApproval && !isVerified && (
                              <span className="text-[10px] font-black text-google-green-dark bg-green-100/50 px-2.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border border-google-green/20">
                                <CheckCircle className="w-3.5 h-3.5" />
                                งานเสร็จสิ้น
+                             </span>
+                          )}
+
+                          {isPendingApproval && (
+                             <span className="text-[10px] font-black text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border border-gray-200">
+                               <Clock className="w-3.5 h-3.5" />
+                               Pending Approval
+                             </span>
+                          )}
+
+                          {isVerified && (
+                             <span className="text-[10px] font-black text-google-blue bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 border border-google-blue/20">
+                               <CheckCircle className="w-3.5 h-3.5" />
+                               Verified & Paid
                              </span>
                           )}
                         </div>
@@ -350,10 +449,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         </M3Button>
                       )}
 
+                      {/* 🚨 อัปเดตการส่งค่า shift ไปที่ handleCheckOut */}
                       {isCheckedIn && (
                         <M3Button 
-                          onClick={() => handleCheckOut(attendanceLog.id)}
-                          loading={processingId === attendanceLog.id}
+                          onClick={() => handleCheckOut(shift)}
+                          loading={processingId === shift.id}
                           className="w-full py-5 text-lg font-black rounded-[20px] 
                                     bg-white border-2 border-[#FBBC05]
                                     !text-[#947600] 
@@ -365,12 +465,34 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                         </M3Button>
                       )}
 
-                      {isCompleted && (
-                        <div className="w-full bg-white/60 text-google-green-dark py-4 rounded-[20px] font-black text-sm flex items-center justify-center gap-3 border border-google-green/10 shadow-sm">
-                          <div className="w-8 h-8 rounded-full bg-google-green flex items-center justify-center text-white">
-                            <CheckCircle className="w-5 h-5" />
-                          </div>
-                          SHIFT COMPLETED
+                      {isCompleted && !isPendingApproval && !isVerified && (
+                        <M3Button 
+                          onClick={() => {
+                            setSummaryData({
+                              earnings: 0, // We don't have it here, but we can fetch or just show modal
+                              hours: 0,
+                              shiftId: shift.id
+                            });
+                            setSummaryModalOpen(true);
+                          }}
+                          className="w-full py-4 text-sm font-black rounded-[20px] bg-google-green text-white"
+                          icon={<DollarSign className="w-5 h-5" />}
+                        >
+                          สรุปยอดและขออนุมัติ
+                        </M3Button>
+                      )}
+
+                      {isPendingApproval && (
+                        <div className="w-full bg-gray-100 text-gray-400 py-4 rounded-[20px] font-black text-sm flex items-center justify-center gap-3 border border-gray-200">
+                          <Clock className="w-5 h-5" />
+                          PENDING APPROVAL
+                        </div>
+                      )}
+
+                      {isVerified && (
+                        <div className="w-full bg-blue-50 text-google-blue py-4 rounded-[20px] font-black text-sm flex items-center justify-center gap-3 border border-google-blue/10">
+                          <CheckCircle className="w-5 h-5" />
+                          PAYMENT VERIFIED
                         </div>
                       )}
 
@@ -540,6 +662,65 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUser }) =
                 </div>
              </div>
           </div>
+        </div>
+      </Modal>
+      
+      {/* Earnings Summary Modal */}
+      <Modal
+        isOpen={summaryModalOpen}
+        onClose={() => !isRequestingVerify && setSummaryModalOpen(false)}
+        title={verifySuccess ? "ส่งคำขอเรียบร้อย" : "สรุปยอดรายได้"}
+      >
+        <div className="space-y-6 py-2">
+          {verifySuccess ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
+              <div className="w-20 h-20 bg-google-green rounded-full flex items-center justify-center shadow-lg shadow-green-100">
+                <Check className="w-10 h-10 text-white stroke-[3px]" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-black text-gray-900">ส่งคำขอเรียบร้อย!</h3>
+                <p className="text-gray-500 text-sm mt-1">หัวหน้างานได้รับคำขอของคุณแล้ว</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 shadow-inner">
+                <div className="flex flex-col items-center space-y-1">
+                  <p className="text-gray-400 font-bold uppercase text-[10px] tracking-[0.2em]">ยอดเงินที่คุณจะได้รับ</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black text-google-navy-dark">฿{summaryData?.earnings.toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200/60">
+                  <div className="text-center">
+                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">ชั่วโมงทำงาน</p>
+                    <p className="text-lg font-black text-gray-800">{summaryData?.hours.toFixed(1)} <span className="text-xs font-bold text-gray-400">ชม.</span></p>
+                  </div>
+                  <div className="text-center border-l border-gray-200/60">
+                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-1">สถานะ</p>
+                    <p className="text-sm font-black text-google-green">บันทึกเวลาแล้ว</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
+                <p className="text-xs text-google-blue font-bold leading-relaxed text-center">
+                  ระบบได้บันทึกเวลาเลิกงานของคุณแล้ว <br/>
+                  กรุณากดปุ่มด้านล่างเพื่อแจ้งหัวหน้างานให้ตรวจสอบยอดเงิน
+                </p>
+              </div>
+
+              <M3Button
+                onClick={handleRequestVerify}
+                loading={isRequestingVerify}
+                className="w-full py-6 text-lg font-black bg-google-green hover:bg-green-700 shadow-lg shadow-green-100 rounded-2xl"
+                icon={<Navigation className="w-5 h-5" />}
+              >
+                ส่งคำขออนุมัติยอดเงิน
+              </M3Button>
+            </>
+          )}
         </div>
       </Modal>
 

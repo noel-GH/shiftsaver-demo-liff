@@ -52,4 +52,5 @@ export interface AttendanceLog {
   check_out_time?: string;
   gps_location?: string;
   notes?: string;
+  verification_status?: 'pending' | 'verified' | 'rejected';
 }
